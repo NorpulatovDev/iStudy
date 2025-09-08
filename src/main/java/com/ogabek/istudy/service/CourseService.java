@@ -24,6 +24,12 @@ public class CourseService {
                 .collect(Collectors.toList());
     }
 
+    public List<CourseDto> searchCoursesByName(Long branchId, String name) {
+        return courseRepository.findByBranchIdAndNameContainingIgnoreCase(branchId, name).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
     public CourseDto getCourseById(Long id) {
         Course course = courseRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Course not found with id: " + id));

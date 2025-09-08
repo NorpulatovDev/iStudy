@@ -16,7 +16,9 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -31,8 +33,19 @@ public class StudentService {
     private final GroupRepository groupRepository;
 
     public List<StudentDto> getStudentsByBranch(Long branchId) {
-        return studentRepository.findByBranchId(branchId).stream()
-                .map(this::convertToDto)
+        LocalDate now = LocalDate.now();
+        return studentRepository.findByBranchIdWithBranch(branchId).stream()
+                .map(student -> convertToDto(student, now.getYear(), now.getMonthValue()))
+                .collect(Collectors.toList());
+    }
+
+    public List<StudentDto> getStudentsByBranch(Long branchId, Integer year, Integer month) {
+        LocalDate now = LocalDate.now();
+        int targetYear = year != null ? year : now.getYear();
+        int targetMonth = month != null ? month : now.getMonthValue();
+
+        return studentRepository.findByBranchIdWithBranch(branchId).stream()
+                .map(student -> convertToDto(student, targetYear, targetMonth))
                 .collect(Collectors.toList());
     }
 
@@ -40,16 +53,17 @@ public class StudentService {
         LocalDate now = LocalDate.now();
         int targetYear = year != null ? year : now.getYear();
         int targetMonth = month != null ? month : now.getMonthValue();
-        
+
         return studentRepository.findUnpaidStudentsByBranchAndMonth(branchId, targetYear, targetMonth)
                 .stream()
-                .map(this::convertToDto)
+                .map(student -> convertToDto(student, targetYear, targetMonth))
                 .collect(Collectors.toList());
     }
 
     public List<StudentDto> searchStudentsByName(Long branchId, String name) {
+        LocalDate now = LocalDate.now();
         return studentRepository.findByBranchIdAndFullName(branchId, name).stream()
-                .map(this::convertToDto)
+                .map(student -> convertToDto(student, now.getYear(), now.getMonthValue()))
                 .collect(Collectors.toList());
     }
 
@@ -62,8 +76,7 @@ public class StudentService {
     public List<GroupDto> getStudentGroups(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
-        
-        // This is a simplified version - you might need to adjust based on your Group entity structure
+
         return groupRepository.findByBranchId(student.getBranch().getId()).stream()
                 .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
                 .map(this::convertGroupToDto)
@@ -75,30 +88,40 @@ public class StudentService {
         LocalDate now = LocalDate.now();
         List<Student> unpaidStudents = studentRepository.findUnpaidStudentsByBranchAndMonth(
                 branchId, now.getYear(), now.getMonthValue());
-        
+
         Map<String, Object> statistics = new HashMap<>();
         statistics.put("totalStudents", allStudents.size());
         statistics.put("paidStudents", allStudents.size() - unpaidStudents.size());
         statistics.put("unpaidStudents", unpaidStudents.size());
-        statistics.put("paymentRate", allStudents.size() > 0 ? 
+        statistics.put("paymentRate", allStudents.size() > 0 ?
                 (double)(allStudents.size() - unpaidStudents.size()) / allStudents.size() * 100 : 0);
-        
+
         return statistics;
     }
 
     public List<StudentDto> getRecentStudents(Long branchId, int limit) {
-        Pageable pageable = PageRequest.of(0, limit, Sort.by(Sort.Direction.DESC, "createdAt"));
+        LocalDate now = LocalDate.now();
         return studentRepository.findByBranchId(branchId).stream()
                 .sorted((s1, s2) -> s2.getCreatedAt().compareTo(s1.getCreatedAt()))
                 .limit(limit)
-                .map(this::convertToDto)
+                .map(student -> convertToDto(student, now.getYear(), now.getMonthValue()))
                 .collect(Collectors.toList());
     }
 
     public StudentDto getStudentById(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
-        return convertToDto(student);
+        LocalDate now = LocalDate.now();
+        return convertToDto(student, now.getYear(), now.getMonthValue());
+    }
+
+    public StudentDto getStudentById(Long id, Integer year, Integer month) {
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+        LocalDate now = LocalDate.now();
+        int targetYear = year != null ? year : now.getYear();
+        int targetMonth = month != null ? month : now.getMonthValue();
+        return convertToDto(student, targetYear, targetMonth);
     }
 
     public StudentDto createStudent(CreateStudentRequest request) {
@@ -112,7 +135,8 @@ public class StudentService {
         student.setBranch(branch);
 
         Student savedStudent = studentRepository.save(student);
-        return convertToDto(savedStudent);
+        LocalDate now = LocalDate.now();
+        return convertToDto(savedStudent, now.getYear(), now.getMonthValue());
     }
 
     public StudentDto updateStudent(Long id, CreateStudentRequest request) {
@@ -128,7 +152,8 @@ public class StudentService {
         student.setBranch(branch);
 
         Student savedStudent = studentRepository.save(student);
-        return convertToDto(savedStudent);
+        LocalDate now = LocalDate.now();
+        return convertToDto(savedStudent, now.getYear(), now.getMonthValue());
     }
 
     public void deleteStudent(Long id) {
@@ -138,7 +163,8 @@ public class StudentService {
         studentRepository.deleteById(id);
     }
 
-    private StudentDto convertToDto(Student student) {
+    // UPDATED: Enhanced convertToDto method with payment status calculation
+    private StudentDto convertToDto(Student student, int year, int month) {
         StudentDto dto = new StudentDto();
         dto.setId(student.getId());
         dto.setFirstName(student.getFirstName());
@@ -147,9 +173,46 @@ public class StudentService {
         dto.setBranchId(student.getBranch().getId());
         dto.setBranchName(student.getBranch().getName());
         dto.setCreatedAt(student.getCreatedAt());
+
+        // Calculate payment status for the specified month/year
+        calculatePaymentStatus(dto, student.getId(), year, month);
+
         return dto;
     }
 
+    // NEW: Calculate payment status for a student
+    private void calculatePaymentStatus(StudentDto dto, Long studentId, int year, int month) {
+        // Check if student has paid in the specified month
+        Boolean hasPaid = studentRepository.hasStudentPaidInMonth(studentId, year, month);
+        dto.setHasPaidInMonth(hasPaid != null ? hasPaid : false);
+
+        // Get total amount paid in the month
+        BigDecimal totalPaid = studentRepository.getTotalPaidByStudentInMonth(studentId, year, month);
+        dto.setTotalPaidInMonth(totalPaid != null ? totalPaid : BigDecimal.ZERO);
+
+        // Get expected monthly payment amount
+        BigDecimal expectedPayment = studentRepository.getExpectedMonthlyPaymentForStudent(studentId);
+        expectedPayment = expectedPayment != null ? expectedPayment : BigDecimal.ZERO;
+
+        // Calculate remaining amount
+        BigDecimal remaining = expectedPayment.subtract(dto.getTotalPaidInMonth());
+        dto.setRemainingAmount(remaining.compareTo(BigDecimal.ZERO) > 0 ? remaining : BigDecimal.ZERO);
+
+        // Determine payment status
+        if (dto.getTotalPaidInMonth().compareTo(BigDecimal.ZERO) == 0) {
+            dto.setPaymentStatus("UNPAID");
+        } else if (dto.getTotalPaidInMonth().compareTo(expectedPayment) >= 0) {
+            dto.setPaymentStatus("PAID");
+        } else {
+            dto.setPaymentStatus("PARTIAL");
+        }
+
+        // Get last payment date
+        LocalDateTime lastPaymentDate = studentRepository.getLastPaymentDate(studentId);
+        dto.setLastPaymentDate(lastPaymentDate);
+    }
+
+    // Keep existing helper methods
     private PaymentDto convertPaymentToDto(com.ogabek.istudy.entity.Payment payment) {
         PaymentDto dto = new PaymentDto();
         dto.setId(payment.getId());

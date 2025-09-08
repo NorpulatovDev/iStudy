@@ -1,12 +1,9 @@
 package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreateCourseRequest;
-import com.ogabek.istudy.dto.request.CreateStudentRequest;
 import com.ogabek.istudy.dto.response.CourseDto;
-import com.ogabek.istudy.dto.response.StudentDto;
 import com.ogabek.istudy.security.BranchAccessControl;
 import com.ogabek.istudy.service.CourseService;
-import com.ogabek.istudy.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
@@ -20,10 +17,9 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class CourseController {
-    
+
     private final CourseService courseService;
     private final BranchAccessControl branchAccessControl;
-    private final StudentService studentService;
 
     @GetMapping
     public ResponseEntity<List<CourseDto>> getCoursesByBranch(@RequestParam Long branchId) {
@@ -44,31 +40,55 @@ public class CourseController {
     }
 
     @PostMapping
-    public ResponseEntity<StudentDto> createStudent(@Valid @RequestBody CreateStudentRequest request) {
+    public ResponseEntity<CourseDto> createCourse(@Valid @RequestBody CreateCourseRequest request) {
         if (!branchAccessControl.hasAccessToBranch(request.getBranchId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        StudentDto student = studentService.createStudent(request);
-        return ResponseEntity.ok(student);
+        CourseDto course = courseService.createCourse(request);
+        return ResponseEntity.ok(course);
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<StudentDto> updateStudent(@PathVariable Long id, 
-                                                    @Valid @RequestBody CreateStudentRequest request) {
+    public ResponseEntity<CourseDto> updateCourse(@PathVariable Long id,
+                                                  @Valid @RequestBody CreateCourseRequest request) {
         if (!branchAccessControl.hasAccessToBranch(request.getBranchId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        StudentDto student = studentService.updateStudent(id, request);
-        return ResponseEntity.ok(student);
+
+        // Also check access to the existing course's branch
+        CourseDto existingCourse = courseService.getCourseById(id);
+        if (!branchAccessControl.hasAccessToBranch(existingCourse.getBranchId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        CourseDto course = courseService.updateCourse(id, request);
+        return ResponseEntity.ok(course);
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteStudent(@PathVariable Long id) {
-        StudentDto student = studentService.getStudentById(id);
-        if (!branchAccessControl.hasAccessToBranch(student.getBranchId())) {
+    public ResponseEntity<Void> deleteCourse(@PathVariable Long id) {
+        CourseDto course = courseService.getCourseById(id);
+        if (!branchAccessControl.hasAccessToBranch(course.getBranchId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        studentService.deleteStudent(id);
+        courseService.deleteCourse(id);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/search")
+    public ResponseEntity<List<CourseDto>> searchCourses(@RequestParam Long branchId,
+                                                         @RequestParam(required = false) String name) {
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<CourseDto> courses;
+        if (name != null && !name.trim().isEmpty()) {
+            courses = courseService.searchCoursesByName(branchId, name);
+        } else {
+            courses = courseService.getCoursesByBranch(branchId);
+        }
+
+        return ResponseEntity.ok(courses);
     }
 }
