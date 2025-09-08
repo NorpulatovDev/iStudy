@@ -1,6 +1,9 @@
 package com.ogabek.istudy.entity;
 
 import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.math.BigDecimal;
@@ -8,6 +11,9 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "teachers")
+@Data
+@NoArgsConstructor
+@AllArgsConstructor
 public class Teacher {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -15,13 +21,18 @@ public class Teacher {
 
     @Column(nullable = false)
     private String firstName;
+
     @Column(nullable = false)
     private String lastName;
 
     private String phoneNumber;
+    private String email;
 
-    private BigDecimal baseSalary;
-    private BigDecimal paymentPercentage;
+    @Column(precision = 10, scale = 2)
+    private BigDecimal baseSalary = BigDecimal.ZERO;
+
+    @Column(precision = 5, scale = 2)
+    private BigDecimal paymentPercentage = BigDecimal.ZERO;
 
     @Enumerated(EnumType.STRING)
     private SalaryType salaryType;
