@@ -16,8 +16,20 @@ public class JwtUtils {
     @Value("${jwt.secret:mySecretKey}")
     private String jwtSecret;
 
+    @Value("${jwt.refresh.expiration:604800000}")
+    private int jwtRefreshExpirationMs;
+
     @Value("${jwt.expiration:86400000}")
     private int jwtExpirationMs;
+
+    public String generateRefreshToken(String username) {
+        return Jwts.builder()
+                .setSubject(username)
+                .setIssuedAt(new Date())
+                .setExpiration(new Date((new Date()).getTime() + jwtRefreshExpirationMs))
+                .signWith(getSigningKey(), SignatureAlgorithm.HS256)
+                .compact();
+    }
 
     private SecretKey getSigningKey() {
         return Keys.hmacShaKeyFor(jwtSecret.getBytes());

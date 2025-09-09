@@ -2,6 +2,7 @@ package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreateUserRequest;
 import com.ogabek.istudy.dto.request.LoginRequest;
+import com.ogabek.istudy.dto.request.RefreshTokenRequest;
 import com.ogabek.istudy.dto.response.JwtResponse;
 import com.ogabek.istudy.dto.response.UserDto;
 import com.ogabek.istudy.service.UserService;
@@ -9,6 +10,9 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/auth")
@@ -28,5 +32,19 @@ public class AuthController {
     public ResponseEntity<UserDto> register(@Valid @RequestBody CreateUserRequest request) {
         UserDto user = userService.createUser(request);
         return ResponseEntity.ok(user);
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<JwtResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
+        JwtResponse response = userService.refreshToken(request.getRefreshToken());
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(@RequestParam Long userId) {
+        userService.logout(userId);
+        Map<String, String> response = new HashMap<>();
+        response.put("message", "Logout successful");
+        return ResponseEntity.ok(response);
     }
 }
