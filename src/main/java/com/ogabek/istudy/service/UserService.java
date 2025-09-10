@@ -11,6 +11,7 @@ import com.ogabek.istudy.entity.User;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.UserRepository;
 import com.ogabek.istudy.security.JwtUtils;
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -32,6 +33,7 @@ public class UserService {
     private final JwtUtils jwtUtils;
     private final RefreshTokenService refreshTokenService;
 
+    @Transactional
     public JwtResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -40,7 +42,8 @@ public class UserService {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String jwt = jwtUtils.generateJwtToken(userDetails.getUsername());
 
-        User user = userRepository.findByUsername(userDetails.getUsername())
+        // Use the new method that eagerly loads the branch
+        User user = userRepository.findByUsernameWithBranch(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
         // CREATE REFRESH TOKEN
