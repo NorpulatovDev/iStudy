@@ -3,7 +3,6 @@ package com.ogabek.istudy.config;
 import com.ogabek.istudy.security.JwtAuthTokenFilter;
 import com.ogabek.istudy.security.UserDetailsServiceImpl;
 import lombok.RequiredArgsConstructor;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -33,32 +32,12 @@ public class SecurityConfig {
     private final UserDetailsServiceImpl userDetailsService;
     private final JwtAuthTokenFilter jwtAuthTokenFilter;
 
-    @Value("${app.cors.allowed-origins}")
-    private String allowedOrigins;
-
-    @Value("${app.cors.allowed-methods}")
-    private String allowedMethods;
-
-    @Value("${app.cors.allowed-headers}")
-    private String allowedHeaders;
-
-    @Value("${app.cors.allow-credentials}")
-    private boolean allowCredentials;
-
     private static final String[] SWAGGER_WHITELIST = {
             "/v3/api-docs/**",
             "/swagger-ui/**",
             "/swagger-ui.html",
             "/swagger-resources/**",
-            "/webjars/**",
-            "/swagger-ui/index.html"
-    };
-
-    private static final String[] PUBLIC_ENDPOINTS = {
-            "/api/auth/**",
-            "/api/public/**",
-            "/actuator/health",
-            "/error"
+            "/webjars/**"
     };
 
     @Bean
@@ -83,33 +62,16 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Split the comma-separated origins from properties
-        List<String> origins = Arrays.asList(allowedOrigins.split(","));
-        configuration.setAllowedOriginPatterns(origins);
-
-        // Split the comma-separated methods from properties
-        List<String> methods = Arrays.asList(allowedMethods.split(","));
-        configuration.setAllowedMethods(methods);
-
-        // Split the comma-separated headers from properties
-        if ("*".equals(allowedHeaders)) {
-            configuration.setAllowedHeaders(List.of("*"));
-        } else {
-            List<String> headers = Arrays.asList(allowedHeaders.split(","));
-            configuration.setAllowedHeaders(headers);
-        }
-
-        configuration.setAllowCredentials(allowCredentials);
-        configuration.setMaxAge(3600L);
-
-        // Allow common headers for API requests
-        configuration.setExposedHeaders(Arrays.asList(
-                "Authorization",
-                "Content-Type",
-                "Accept",
-                "X-Requested-With",
-                "Cache-Control"
+        // Allow localhost origins for development
+        configuration.setAllowedOriginPatterns(List.of(
+                "http://localhost:*",
+                "http://127.0.0.1:*"
         ));
+
+        configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "DELETE", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+        configuration.setMaxAge(3600L);
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", configuration);
@@ -123,7 +85,8 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(authz -> authz
                         // Public endpoints
-                        .requestMatchers(PUBLIC_ENDPOINTS).permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/api/public/**").permitAll()
 
                         // Swagger endpoints
                         .requestMatchers(SWAGGER_WHITELIST).permitAll()
@@ -133,11 +96,7 @@ public class SecurityConfig {
                         .requestMatchers("/api/admin/users/**").hasRole("SUPER_ADMIN")
                         .requestMatchers("/api/admin/reports/all-branches/**").hasRole("SUPER_ADMIN")
 
-                        // Branch management endpoints (Super Admin only)
-                        .requestMatchers("/api/branches/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-                        .requestMatchers("/api/users/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
-
-                        // Admin and Super Admin endpoints (all other API endpoints)
+                        // Admin and Super Admin endpoints
                         .requestMatchers("/api/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
 
                         .anyRequest().authenticated()
