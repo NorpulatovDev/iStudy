@@ -16,10 +16,10 @@ import java.util.UUID;
 @Service
 @RequiredArgsConstructor
 public class RefreshTokenService {
-    
+
     @Value("${jwt.refresh.expiration:604800000}")  // 7 days
     private Long refreshTokenDurationMs;
-    
+
     private final RefreshTokenRepository refreshTokenRepository;
     private final UserRepository userRepository;
 
@@ -27,13 +27,16 @@ public class RefreshTokenService {
         return refreshTokenRepository.findByToken(token);
     }
 
+    @Transactional
     public RefreshToken createRefreshToken(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
 
         // Delete existing refresh token for this user
-        refreshTokenRepository.findByUser(user)
-                .ifPresent(refreshTokenRepository::delete);
+        refreshTokenRepository.deleteByUser(user);
+
+        // Flush to ensure the delete is committed before insert
+        refreshTokenRepository.flush();
 
         RefreshToken refreshToken = new RefreshToken();
         refreshToken.setUser(user);
@@ -52,10 +55,16 @@ public class RefreshTokenService {
     }
 
     @Transactional
-    public int deleteByUserId(Long userId) {
+    public void deleteByUserId(Long userId) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
-        return refreshTokenRepository.deleteByUser(user);
+        refreshTokenRepository.deleteByUser(user);
+    }
+
+    @Transactional
+    public void deleteByToken(String token) {
+        Optional<RefreshToken> refreshToken = refreshTokenRepository.findByToken(token);
+        refreshToken.ifPresent(refreshTokenRepository::delete);
     }
 
     @Transactional
