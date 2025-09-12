@@ -12,7 +12,7 @@ public class CourseDto {
     private String name;
     private String description;
     private BigDecimal price;
-    private int durationMonths;
+    private Integer durationMonths;
     private Long branchId;
     private String branchName;
     private LocalDateTime createdAt;

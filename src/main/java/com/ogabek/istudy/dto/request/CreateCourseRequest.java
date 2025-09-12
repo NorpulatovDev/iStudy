@@ -20,7 +20,7 @@ public class CreateCourseRequest {
     @DecimalMin(value = "0.0", inclusive = false, message = "Narx 0 dan katta bo'lishi keark")
     private BigDecimal price;
 
-    private int durationMonths;
+    private Integer durationMonths;
 
     @NotNull(message = "Filial majburiy")
     private Long branchId;
