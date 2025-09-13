@@ -10,6 +10,8 @@ import com.ogabek.istudy.entity.User;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.UserRepository;
 import com.ogabek.istudy.security.JwtUtils;
+import com.ogabek.istudy.service.RefreshTokenService;
+import com.ogabek.istudy.entity.RefreshToken;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -30,6 +32,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
+    private final RefreshTokenService refreshTokenService;
 
     public JwtResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
@@ -42,7 +45,10 @@ public class UserService {
         User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        JwtResponse response = new JwtResponse(jwt);
+        // Create refresh token
+        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
+
+        JwtResponse response = new JwtResponse(jwt, refreshToken.getToken());
         response.setUserId(user.getId());
         response.setUsername(user.getUsername());
         response.setRole(user.getRole().name());
@@ -99,6 +105,31 @@ public class UserService {
             throw new RuntimeException("User not found with id: " + id);
         }
         userRepository.deleteById(id);
+    }
+
+    public JwtResponse refreshToken(String refreshTokenStr) {
+        return refreshTokenService.findByToken(refreshTokenStr)
+                .map(refreshTokenService::verifyExpiration)
+                .map(RefreshToken::getUser)
+                .map(user -> {
+                    String token = jwtUtils.generateJwtToken(user.getUsername());
+                    JwtResponse response = new JwtResponse(token, refreshTokenStr);
+                    response.setUserId(user.getId());
+                    response.setUsername(user.getUsername());
+                    response.setRole(user.getRole().name());
+
+                    if (user.getBranch() != null) {
+                        response.setBranchId(user.getBranch().getId());
+                        response.setBranchName(user.getBranch().getName());
+                    }
+
+                    return response;
+                })
+                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
+    }
+
+    public void logout(Long userId) {
+        refreshTokenService.deleteByUserId(userId);
     }
 
     private UserDto convertToDto(User user) {
