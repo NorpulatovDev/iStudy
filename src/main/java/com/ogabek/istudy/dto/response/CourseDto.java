@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
+import java.util.List;
 
 @Getter @Setter
 public class CourseDto {
@@ -16,5 +17,5 @@ public class CourseDto {
     private Long branchId;
     private String branchName;
     private LocalDateTime createdAt;
-
+    private List<GroupDto> groups;
 }
