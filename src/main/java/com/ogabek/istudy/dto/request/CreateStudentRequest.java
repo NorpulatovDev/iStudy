@@ -10,4 +10,5 @@ public class CreateStudentRequest {
     private String lastName;
     private String phoneNumber;
     private Long branchId;
+    private Long groupId;
 }

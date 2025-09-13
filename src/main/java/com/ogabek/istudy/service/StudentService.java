@@ -5,6 +5,7 @@ import com.ogabek.istudy.dto.response.GroupDto;
 import com.ogabek.istudy.dto.response.PaymentDto;
 import com.ogabek.istudy.dto.response.StudentDto;
 import com.ogabek.istudy.entity.Branch;
+import com.ogabek.istudy.entity.Group;
 import com.ogabek.istudy.entity.Student;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.GroupRepository;
@@ -127,13 +128,15 @@ public class StudentService {
     public StudentDto createStudent(CreateStudentRequest request) {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
-
+        Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> new RuntimeException("Group not found with id: " + request.getGroupId()));
         Student student = new Student();
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPhoneNumber(request.getPhoneNumber());
         student.setBranch(branch);
 
+        group.getStudents().add(student);
+        groupRepository.save(group);
         Student savedStudent = studentRepository.save(student);
         LocalDate now = LocalDate.now();
         return convertToDto(savedStudent, now.getYear(), now.getMonthValue());
