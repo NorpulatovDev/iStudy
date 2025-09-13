@@ -236,8 +236,6 @@ public class StudentService {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setStartTime(group.getStartTime());
-        dto.setEndTime(group.getEndTime());
         dto.setCourseId(group.getCourse().getId());
         dto.setCourseName(group.getCourse().getName());
         dto.setTeacherId(group.getTeacher().getId());
