@@ -68,8 +68,6 @@ public class GroupService {
 
         Group group = new Group();
         group.setName(request.getName());
-        group.setStartTime(request.getStartTime());
-        group.setEndTime(request.getEndTime());
         group.setCourse(course);
         group.setTeacher(teacher);
         group.setBranch(branch);
@@ -103,8 +101,6 @@ public class GroupService {
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
 
         group.setName(request.getName());
-        group.setStartTime(request.getStartTime());
-        group.setEndTime(request.getEndTime());
         group.setCourse(course);
         group.setTeacher(teacher);
         group.setBranch(branch);
@@ -203,8 +199,6 @@ public class GroupService {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setStartTime(group.getStartTime());
-        dto.setEndTime(group.getEndTime());
         dto.setCourseId(group.getCourse().getId());
         dto.setCourseName(group.getCourse().getName());
 

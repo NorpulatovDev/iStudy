@@ -17,12 +17,6 @@ public class CreateGroupRequest {
     @Size(min = 2, max = 50, message = "Guruh nomi 2-5 harfdan iborat bo'lishi kerak")
     private String name;
 
-    @NotNull(message = "Boshlanish vaqti majburiy")
-    private LocalTime startTime;
-
-    @NotNull(message = "Tugash vaqti majburiy")
-    private LocalTime endTime;
-
     @NotNull(message = "Kurs majburiy")
     private Long courseId;
 

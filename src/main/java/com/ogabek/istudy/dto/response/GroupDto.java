@@ -12,8 +12,6 @@ import java.util.List;
 public class GroupDto {
     private Long id;
     private String name;
-    private LocalTime startTime;
-    private LocalTime endTime;
     private Long courseId;
     private String courseName;
     private Long teacherId;

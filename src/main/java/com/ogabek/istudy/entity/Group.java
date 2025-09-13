@@ -21,8 +21,6 @@ public class Group {
     private Long id;
 
     private String name;
-    private LocalTime startTime;
-    private LocalTime endTime;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "course_id", nullable = false)
