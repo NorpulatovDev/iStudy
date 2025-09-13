@@ -5,13 +5,11 @@ import com.ogabek.istudy.dto.request.LoginRequest;
 import com.ogabek.istudy.dto.response.JwtResponse;
 import com.ogabek.istudy.dto.response.UserDto;
 import com.ogabek.istudy.entity.Branch;
-import com.ogabek.istudy.entity.RefreshToken;
 import com.ogabek.istudy.entity.Role;
 import com.ogabek.istudy.entity.User;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.UserRepository;
 import com.ogabek.istudy.security.JwtUtils;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -19,6 +17,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -31,9 +30,7 @@ public class UserService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JwtUtils jwtUtils;
-    private final RefreshTokenService refreshTokenService;
 
-    @Transactional
     public JwtResponse login(LoginRequest request) {
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())
@@ -42,14 +39,10 @@ public class UserService {
         UserDetails userDetails = (UserDetails) authentication.getPrincipal();
         String jwt = jwtUtils.generateJwtToken(userDetails.getUsername());
 
-        // Use the new method that eagerly loads the branch
-        User user = userRepository.findByUsernameWithBranch(userDetails.getUsername())
+        User user = userRepository.findByUsername(userDetails.getUsername())
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // CREATE REFRESH TOKEN
-        RefreshToken refreshToken = refreshTokenService.createRefreshToken(user.getId());
-
-        JwtResponse response = new JwtResponse(jwt, refreshToken.getToken());
+        JwtResponse response = new JwtResponse(jwt);
         response.setUserId(user.getId());
         response.setUsername(user.getUsername());
         response.setRole(user.getRole().name());
@@ -82,33 +75,9 @@ public class UserService {
         return convertToDto(savedUser);
     }
 
-    public JwtResponse refreshToken(String refreshTokenStr) {
-        return refreshTokenService.findByToken(refreshTokenStr)
-                .map(refreshTokenService::verifyExpiration)
-                .map(RefreshToken::getUser)
-                .map(user -> {
-                    String token = jwtUtils.generateJwtToken(user.getUsername());
-                    JwtResponse response = new JwtResponse(token, refreshTokenStr);
-                    response.setUserId(user.getId());
-                    response.setUsername(user.getUsername());
-                    response.setRole(user.getRole().name());
-
-                    if (user.getBranch() != null) {
-                        response.setBranchId(user.getBranch().getId());
-                        response.setBranchName(user.getBranch().getName());
-                    }
-
-                    return response;
-                })
-                .orElseThrow(() -> new RuntimeException("Refresh token is not in database!"));
-    }
-
-    public void logout(Long userId) {
-        refreshTokenService.deleteByUserId(userId);
-    }
-
+    @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
-        return userRepository.findAll().stream()
+        return userRepository.findAllWithBranch().stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
@@ -137,12 +106,12 @@ public class UserService {
         dto.setId(user.getId());
         dto.setUsername(user.getUsername());
         dto.setRole(user.getRole().name());
-        
+
         if (user.getBranch() != null) {
             dto.setBranchId(user.getBranch().getId());
             dto.setBranchName(user.getBranch().getName());
         }
-        
+
         dto.setCreatedAt(user.getCreatedAt());
         return dto;
     }
