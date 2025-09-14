@@ -40,6 +40,31 @@ public class GroupController {
         return ResponseEntity.ok(group);
     }
 
+    @GetMapping("/by-course")
+    public ResponseEntity<List<GroupDto>> getGroupsByCourse(@RequestParam Long courseId) {
+        List<GroupDto> groups = groupService.getGroupsByCourse(courseId);
+
+        // Check access to the first group's branch (all groups should be from same course/branch)
+        if (!groups.isEmpty() && !branchAccessControl.hasAccessToBranch(groups.get(0).getBranchId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(groups);
+    }
+
+    // NEW: Get groups by teacher ID
+    @GetMapping("/by-teacher")
+    public ResponseEntity<List<GroupDto>> getGroupsByTeacher(@RequestParam Long teacherId) {
+        List<GroupDto> groups = groupService.getGroupsByTeacher(teacherId);
+
+        // Check access to the first group's branch (all groups should be from same teacher/branch)
+        if (!groups.isEmpty() && !branchAccessControl.hasAccessToBranch(groups.get(0).getBranchId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        return ResponseEntity.ok(groups);
+    }
+
     @GetMapping("/{id}/unpaid-students")
     public ResponseEntity<List<StudentDto>> getUnpaidStudentsByGroup(
             @PathVariable Long id,
