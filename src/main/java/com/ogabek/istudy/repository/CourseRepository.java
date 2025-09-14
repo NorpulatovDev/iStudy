@@ -18,7 +18,7 @@ public interface CourseRepository extends JpaRepository<Course, Long> {
     @Query("SELECT c FROM Course c LEFT JOIN FETCH c.branch WHERE c.id = :id")
     Optional<Course> findByIdWithBranch(@Param("id") Long id);
 
-    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.branch WHERE c.branch.id = :branchId AND c.name LIKE %:name%")
+    @Query("SELECT c FROM Course c LEFT JOIN FETCH c.branch WHERE c.branch.id = :branchId AND c.name ILIKE %:name%")
     List<Course> findByBranchIdAndNameContainingIgnoreCaseWithBranch(@Param("branchId") Long branchId, @Param("name") String name);
 
     @Query("SELECT c FROM Course c LEFT JOIN FETCH c.branch WHERE c.branch.id = :branchId ORDER BY c.name")
