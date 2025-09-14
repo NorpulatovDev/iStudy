@@ -6,10 +6,12 @@ import com.ogabek.istudy.security.BranchAccessControl;
 import com.ogabek.istudy.service.PaymentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -17,7 +19,7 @@ import java.util.List;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class PaymentController {
-    
+
     private final PaymentService paymentService;
     private final BranchAccessControl branchAccessControl;
 
@@ -27,6 +29,50 @@ public class PaymentController {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         List<PaymentDto> payments = paymentService.getPaymentsByBranch(branchId);
+        return ResponseEntity.ok(payments);
+    }
+
+    // NEW: Get payments by date range
+    @GetMapping("/by-date-range")
+    public ResponseEntity<List<PaymentDto>> getPaymentsByDateRange(
+            @RequestParam Long branchId,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
+
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<PaymentDto> payments = paymentService.getPaymentsByDateRange(branchId, startDate, endDate);
+        return ResponseEntity.ok(payments);
+    }
+
+    // NEW: Get payments by month/year
+    @GetMapping("/by-month")
+    public ResponseEntity<List<PaymentDto>> getPaymentsByMonth(
+            @RequestParam Long branchId,
+            @RequestParam int year,
+            @RequestParam int month) {
+
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<PaymentDto> payments = paymentService.getPaymentsByMonth(branchId, year, month);
+        return ResponseEntity.ok(payments);
+    }
+
+    // NEW: Get recent payments
+    @GetMapping("/recent")
+    public ResponseEntity<List<PaymentDto>> getRecentPayments(
+            @RequestParam Long branchId,
+            @RequestParam(defaultValue = "20") int limit) {
+
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<PaymentDto> payments = paymentService.getRecentPayments(branchId, limit);
         return ResponseEntity.ok(payments);
     }
 
@@ -56,5 +102,25 @@ public class PaymentController {
         }
         PaymentDto payment = paymentService.createPayment(request);
         return ResponseEntity.ok(payment);
+    }
+
+    // NEW: Search payments by student name
+    @GetMapping("/search")
+    public ResponseEntity<List<PaymentDto>> searchPayments(
+            @RequestParam Long branchId,
+            @RequestParam(required = false) String studentName) {
+
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        List<PaymentDto> payments;
+        if (studentName != null && !studentName.trim().isEmpty()) {
+            payments = paymentService.searchPaymentsByStudentName(branchId, studentName);
+        } else {
+            payments = paymentService.getPaymentsByBranch(branchId);
+        }
+
+        return ResponseEntity.ok(payments);
     }
 }
