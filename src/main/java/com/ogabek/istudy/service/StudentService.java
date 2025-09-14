@@ -84,7 +84,7 @@ public class StudentService {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
 
-        return groupRepository.findByBranchId(student.getBranch().getId()).stream()
+        return groupRepository.findByBranchIdWithAllRelations(student.getBranch().getId()).stream()
                 .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
                 .map(this::convertGroupToDto)
                 .collect(Collectors.toList());
@@ -152,10 +152,8 @@ public class StudentService {
         // Add student to multiple groups if provided
         if (request.getGroupIds() != null && !request.getGroupIds().isEmpty()) {
             for (Long groupId : request.getGroupIds()) {
-                Group group = groupRepository.findByIdWithStudents(groupId);
-                if (group == null) {
-                    throw new RuntimeException("Group not found with id: " + groupId);
-                }
+                Group group = groupRepository.findByIdWithAllRelations(groupId)
+                        .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
                 // Verify group belongs to the same branch
                 if (!group.getBranch().getId().equals(request.getBranchId())) {
@@ -192,7 +190,7 @@ public class StudentService {
 
         // Update group memberships
         // First, remove student from all current groups
-        List<Group> currentGroups = groupRepository.findByBranchId(branch.getId()).stream()
+        List<Group> currentGroups = groupRepository.findByBranchIdWithAllRelations(branch.getId()).stream()
                 .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
                 .collect(Collectors.toList());
 
@@ -204,10 +202,8 @@ public class StudentService {
         // Then, add student to new groups
         if (request.getGroupIds() != null && !request.getGroupIds().isEmpty()) {
             for (Long groupId : request.getGroupIds()) {
-                Group group = groupRepository.findByIdWithStudents(groupId);
-                if (group == null) {
-                    throw new RuntimeException("Group not found with id: " + groupId);
-                }
+                Group group = groupRepository.findByIdWithAllRelations(groupId)
+                        .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
                 // Verify group belongs to the same branch
                 if (!group.getBranch().getId().equals(request.getBranchId())) {
@@ -232,7 +228,7 @@ public class StudentService {
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
 
         // Remove student from all groups before deleting
-        List<Group> studentGroups = groupRepository.findByBranchId(student.getBranch().getId()).stream()
+        List<Group> studentGroups = groupRepository.findByBranchIdWithAllRelations(student.getBranch().getId()).stream()
                 .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
                 .collect(Collectors.toList());
 
@@ -251,30 +247,37 @@ public class StudentService {
         dto.setFirstName(student.getFirstName());
         dto.setLastName(student.getLastName());
         dto.setPhoneNumber(student.getPhoneNumber());
-        dto.setBranchId(student.getBranch().getId());
-        dto.setBranchName(student.getBranch().getName());
+
+        // Safe access to branch properties
+        if (student.getBranch() != null) {
+            dto.setBranchId(student.getBranch().getId());
+            dto.setBranchName(student.getBranch().getName());
+        }
+
         dto.setCreatedAt(student.getCreatedAt());
 
-        // Get groups the student belongs to
-        List<Group> studentGroups = groupRepository.findByBranchId(student.getBranch().getId()).stream()
-                .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
-                .collect(Collectors.toList());
+        // Get groups the student belongs to (with eager loading to avoid lazy loading issues)
+        if (student.getBranch() != null) {
+            List<Group> studentGroups = groupRepository.findByBranchIdWithAllRelations(student.getBranch().getId()).stream()
+                    .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
+                    .collect(Collectors.toList());
 
-        List<StudentDto.GroupInfo> groupInfos = studentGroups.stream()
-                .map(group -> {
-                    String teacherName = group.getTeacher() != null ?
-                            group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName() : null;
-                    return new StudentDto.GroupInfo(
-                            group.getId(),
-                            group.getName(),
-                            group.getCourse().getId(),
-                            group.getCourse().getName(),
-                            teacherName
-                    );
-                })
-                .collect(Collectors.toList());
+            List<StudentDto.GroupInfo> groupInfos = studentGroups.stream()
+                    .map(group -> {
+                        String teacherName = group.getTeacher() != null ?
+                                group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName() : null;
+                        return new StudentDto.GroupInfo(
+                                group.getId(),
+                                group.getName(),
+                                group.getCourse() != null ? group.getCourse().getId() : null,
+                                group.getCourse() != null ? group.getCourse().getName() : null,
+                                teacherName
+                        );
+                    })
+                    .collect(Collectors.toList());
 
-        dto.setGroups(groupInfos);
+            dto.setGroups(groupInfos);
+        }
 
         // Calculate payment status for the specified month/year
         calculatePaymentStatus(dto, student.getId(), year, month);
@@ -335,14 +338,25 @@ public class StudentService {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setCourseId(group.getCourse().getId());
-        dto.setCourseName(group.getCourse().getName());
+
+        // Safe access to course properties
+        if (group.getCourse() != null) {
+            dto.setCourseId(group.getCourse().getId());
+            dto.setCourseName(group.getCourse().getName());
+        }
+
+        // Safe access to teacher properties
         if (group.getTeacher() != null) {
             dto.setTeacherId(group.getTeacher().getId());
             dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
         }
-        dto.setBranchId(group.getBranch().getId());
-        dto.setBranchName(group.getBranch().getName());
+
+        // Safe access to branch properties
+        if (group.getBranch() != null) {
+            dto.setBranchId(group.getBranch().getId());
+            dto.setBranchName(group.getBranch().getName());
+        }
+
         dto.setCreatedAt(group.getCreatedAt());
         return dto;
     }

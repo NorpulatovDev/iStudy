@@ -7,6 +7,7 @@ import com.ogabek.istudy.entity.*;
 import com.ogabek.istudy.repository.*;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -25,17 +26,17 @@ public class GroupService {
     private final BranchRepository branchRepository;
     private final StudentRepository studentRepository;
 
+    @Transactional(readOnly = true)
     public List<GroupDto> getGroupsByBranch(Long branchId) {
-        return groupRepository.findByBranchId(branchId).stream()
+        return groupRepository.findByBranchIdWithAllRelations(branchId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> getUnpaidStudentsByGroup(Long groupId, Integer year, Integer month) {
-        Group group = groupRepository.findByIdWithStudents(groupId);
-        if (group == null) {
-            throw new RuntimeException("Group not found with id: " + groupId);
-        }
+        Group group = groupRepository.findByIdWithAllRelations(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
         LocalDate now = LocalDate.now();
         int targetYear = year != null ? year : now.getYear();
@@ -43,24 +44,24 @@ public class GroupService {
 
         return studentRepository.findUnpaidStudentsByBranchAndMonth(group.getBranch().getId(), targetYear, targetMonth)
                 .stream()
-                .filter(student -> group.getStudents().contains(student))
+                .filter(student -> group.getStudents() != null && group.getStudents().contains(student))
                 .map(student -> convertStudentToDto(student, targetYear, targetMonth))
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public GroupDto getGroupById(Long id) {
-        Group group = groupRepository.findByIdWithStudents(id);
-        if (group == null) {
-            throw new RuntimeException("Group not found with id: " + id);
-        }
+        Group group = groupRepository.findByIdWithAllRelations(id)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + id));
         return convertToDto(group);
     }
 
+    @Transactional
     public GroupDto createGroup(CreateGroupRequest request) {
-        Course course = courseRepository.findById(request.getCourseId())
+        Course course = courseRepository.findByIdWithBranch(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found with id: " + request.getCourseId()));
 
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+        Teacher teacher = teacherRepository.findByIdWithBranch(request.getTeacherId())
                 .orElseThrow(() -> new RuntimeException("Teacher not found with id: " + request.getTeacherId()));
 
         Branch branch = branchRepository.findById(request.getBranchId())
@@ -84,17 +85,23 @@ public class GroupService {
         }
 
         Group savedGroup = groupRepository.save(group);
-        return convertToDto(savedGroup);
+
+        // Fetch the saved group with all relations for proper DTO conversion
+        Group groupWithRelations = groupRepository.findByIdWithAllRelations(savedGroup.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to fetch created group"));
+
+        return convertToDto(groupWithRelations);
     }
 
+    @Transactional
     public GroupDto updateGroup(Long id, CreateGroupRequest request) {
-        Group group = groupRepository.findById(id)
+        Group group = groupRepository.findByIdWithAllRelations(id)
                 .orElseThrow(() -> new RuntimeException("Group not found with id: " + id));
 
-        Course course = courseRepository.findById(request.getCourseId())
+        Course course = courseRepository.findByIdWithBranch(request.getCourseId())
                 .orElseThrow(() -> new RuntimeException("Course not found with id: " + request.getCourseId()));
 
-        Teacher teacher = teacherRepository.findById(request.getTeacherId())
+        Teacher teacher = teacherRepository.findByIdWithBranch(request.getTeacherId())
                 .orElseThrow(() -> new RuntimeException("Teacher not found with id: " + request.getTeacherId()));
 
         Branch branch = branchRepository.findById(request.getBranchId())
@@ -117,9 +124,15 @@ public class GroupService {
         }
 
         Group savedGroup = groupRepository.save(group);
-        return convertToDto(savedGroup);
+
+        // Fetch the saved group with all relations for proper DTO conversion
+        Group groupWithRelations = groupRepository.findByIdWithAllRelations(savedGroup.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to fetch updated group"));
+
+        return convertToDto(groupWithRelations);
     }
 
+    @Transactional
     public void deleteGroup(Long id) {
         if (!groupRepository.existsById(id)) {
             throw new RuntimeException("Group not found with id: " + id);
@@ -128,11 +141,10 @@ public class GroupService {
     }
 
     // Get all students in a group with their payment status
+    @Transactional(readOnly = true)
     public List<StudentDto> getGroupStudents(Long groupId, Integer year, Integer month) {
-        Group group = groupRepository.findByIdWithStudents(groupId);
-        if (group == null) {
-            throw new RuntimeException("Group not found with id: " + groupId);
-        }
+        Group group = groupRepository.findByIdWithAllRelations(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
         LocalDate now = LocalDate.now();
         int targetYear = year != null ? year : now.getYear();
@@ -144,25 +156,26 @@ public class GroupService {
     }
 
     // Get groups by teacher
+    @Transactional(readOnly = true)
     public List<GroupDto> getGroupsByTeacher(Long teacherId) {
-        return groupRepository.findByTeacherId(teacherId).stream()
+        return groupRepository.findByTeacherIdWithRelations(teacherId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
     // Get groups by course
+    @Transactional(readOnly = true)
     public List<GroupDto> getGroupsByCourse(Long courseId) {
-        return groupRepository.findByCourseId(courseId).stream()
+        return groupRepository.findByCourseIdWithRelations(courseId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
     // Add student to group
+    @Transactional
     public GroupDto addStudentToGroup(Long groupId, Long studentId) {
-        Group group = groupRepository.findByIdWithStudents(groupId);
-        if (group == null) {
-            throw new RuntimeException("Group not found with id: " + groupId);
-        }
+        Group group = groupRepository.findByIdWithAllRelations(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
@@ -173,15 +186,19 @@ public class GroupService {
 
         group.getStudents().add(student);
         Group savedGroup = groupRepository.save(group);
-        return convertToDto(savedGroup);
+
+        // Fetch with relations for DTO conversion
+        Group groupWithRelations = groupRepository.findByIdWithAllRelations(savedGroup.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to fetch updated group"));
+
+        return convertToDto(groupWithRelations);
     }
 
     // Remove student from group
+    @Transactional
     public GroupDto removeStudentFromGroup(Long groupId, Long studentId) {
-        Group group = groupRepository.findByIdWithStudents(groupId);
-        if (group == null) {
-            throw new RuntimeException("Group not found with id: " + groupId);
-        }
+        Group group = groupRepository.findByIdWithAllRelations(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
 
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
@@ -189,7 +206,12 @@ public class GroupService {
         if (group.getStudents() != null) {
             group.getStudents().remove(student);
             Group savedGroup = groupRepository.save(group);
-            return convertToDto(savedGroup);
+
+            // Fetch with relations for DTO conversion
+            Group groupWithRelations = groupRepository.findByIdWithAllRelations(savedGroup.getId())
+                    .orElseThrow(() -> new RuntimeException("Failed to fetch updated group"));
+
+            return convertToDto(groupWithRelations);
         }
 
         return convertToDto(group);
@@ -199,17 +221,26 @@ public class GroupService {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
         dto.setName(group.getName());
-        dto.setCourseId(group.getCourse().getId());
-        dto.setCourseName(group.getCourse().getName());
 
+        // Safe access to course properties
+        if (group.getCourse() != null) {
+            dto.setCourseId(group.getCourse().getId());
+            dto.setCourseName(group.getCourse().getName());
+        }
+
+        // Safe access to teacher properties
         if (group.getTeacher() != null) {
             dto.setTeacherId(group.getTeacher().getId());
             dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
         }
 
-        dto.setBranchId(group.getBranch().getId());
-        dto.setBranchName(group.getBranch().getName());
+        // Safe access to branch properties
+        if (group.getBranch() != null) {
+            dto.setBranchId(group.getBranch().getId());
+            dto.setBranchName(group.getBranch().getName());
+        }
 
+        // Convert students if present
         if (group.getStudents() != null) {
             LocalDate now = LocalDate.now();
             List<StudentDto> studentDtos = group.getStudents().stream()
@@ -229,8 +260,13 @@ public class GroupService {
         dto.setFirstName(student.getFirstName());
         dto.setLastName(student.getLastName());
         dto.setPhoneNumber(student.getPhoneNumber());
-        dto.setBranchId(student.getBranch().getId());
-        dto.setBranchName(student.getBranch().getName());
+
+        // Safe access to branch properties
+        if (student.getBranch() != null) {
+            dto.setBranchId(student.getBranch().getId());
+            dto.setBranchName(student.getBranch().getName());
+        }
+
         dto.setCreatedAt(student.getCreatedAt());
 
         // Calculate payment status for the specified month/year
