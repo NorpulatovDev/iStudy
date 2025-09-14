@@ -12,17 +12,17 @@ import com.ogabek.istudy.repository.GroupRepository;
 import com.ogabek.istudy.repository.PaymentRepository;
 import com.ogabek.istudy.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +33,7 @@ public class StudentService {
     private final PaymentRepository paymentRepository;
     private final GroupRepository groupRepository;
 
+    @Transactional(readOnly = true)
     public List<StudentDto> getStudentsByBranch(Long branchId) {
         LocalDate now = LocalDate.now();
         return studentRepository.findByBranchIdWithBranch(branchId).stream()
@@ -40,6 +41,7 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> getStudentsByBranch(Long branchId, Integer year, Integer month) {
         LocalDate now = LocalDate.now();
         int targetYear = year != null ? year : now.getYear();
@@ -50,6 +52,7 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> getUnpaidStudents(Long branchId, Integer year, Integer month) {
         LocalDate now = LocalDate.now();
         int targetYear = year != null ? year : now.getYear();
@@ -61,6 +64,7 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> searchStudentsByName(Long branchId, String name) {
         LocalDate now = LocalDate.now();
         return studentRepository.findByBranchIdAndFullName(branchId, name).stream()
@@ -68,12 +72,14 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<PaymentDto> getStudentPaymentHistory(Long studentId) {
         return paymentRepository.findByStudentId(studentId).stream()
                 .map(this::convertPaymentToDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<GroupDto> getStudentGroups(Long studentId) {
         Student student = studentRepository.findById(studentId)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + studentId));
@@ -84,6 +90,7 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public Map<String, Object> getStudentStatistics(Long branchId) {
         List<Student> allStudents = studentRepository.findByBranchId(branchId);
         LocalDate now = LocalDate.now();
@@ -100,6 +107,7 @@ public class StudentService {
         return statistics;
     }
 
+    @Transactional(readOnly = true)
     public List<StudentDto> getRecentStudents(Long branchId, int limit) {
         LocalDate now = LocalDate.now();
         return studentRepository.findByBranchId(branchId).stream()
@@ -109,6 +117,7 @@ public class StudentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public StudentDto getStudentById(Long id) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
@@ -116,6 +125,7 @@ public class StudentService {
         return convertToDto(student, now.getYear(), now.getMonthValue());
     }
 
+    @Transactional(readOnly = true)
     public StudentDto getStudentById(Long id, Integer year, Integer month) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
@@ -125,23 +135,46 @@ public class StudentService {
         return convertToDto(student, targetYear, targetMonth);
     }
 
+    @Transactional
     public StudentDto createStudent(CreateStudentRequest request) {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
-        Group group = groupRepository.findById(request.getGroupId()).orElseThrow(() -> new RuntimeException("Group not found with id: " + request.getGroupId()));
+
+        // Create student
         Student student = new Student();
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPhoneNumber(request.getPhoneNumber());
         student.setBranch(branch);
 
-        group.getStudents().add(student);
-        groupRepository.save(group);
         Student savedStudent = studentRepository.save(student);
+
+        // Add student to multiple groups if provided
+        if (request.getGroupIds() != null && !request.getGroupIds().isEmpty()) {
+            for (Long groupId : request.getGroupIds()) {
+                Group group = groupRepository.findByIdWithStudents(groupId);
+                if (group == null) {
+                    throw new RuntimeException("Group not found with id: " + groupId);
+                }
+
+                // Verify group belongs to the same branch
+                if (!group.getBranch().getId().equals(request.getBranchId())) {
+                    throw new RuntimeException("Group " + groupId + " does not belong to branch " + request.getBranchId());
+                }
+
+                if (group.getStudents() == null) {
+                    group.setStudents(new HashSet<>());
+                }
+                group.getStudents().add(savedStudent);
+                groupRepository.save(group);
+            }
+        }
+
         LocalDate now = LocalDate.now();
         return convertToDto(savedStudent, now.getYear(), now.getMonthValue());
     }
 
+    @Transactional
     public StudentDto updateStudent(Long id, CreateStudentRequest request) {
         Student student = studentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
@@ -149,24 +182,69 @@ public class StudentService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
 
+        // Update basic student info
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPhoneNumber(request.getPhoneNumber());
         student.setBranch(branch);
 
         Student savedStudent = studentRepository.save(student);
+
+        // Update group memberships
+        // First, remove student from all current groups
+        List<Group> currentGroups = groupRepository.findByBranchId(branch.getId()).stream()
+                .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
+                .collect(Collectors.toList());
+
+        for (Group group : currentGroups) {
+            group.getStudents().remove(student);
+            groupRepository.save(group);
+        }
+
+        // Then, add student to new groups
+        if (request.getGroupIds() != null && !request.getGroupIds().isEmpty()) {
+            for (Long groupId : request.getGroupIds()) {
+                Group group = groupRepository.findByIdWithStudents(groupId);
+                if (group == null) {
+                    throw new RuntimeException("Group not found with id: " + groupId);
+                }
+
+                // Verify group belongs to the same branch
+                if (!group.getBranch().getId().equals(request.getBranchId())) {
+                    throw new RuntimeException("Group " + groupId + " does not belong to branch " + request.getBranchId());
+                }
+
+                if (group.getStudents() == null) {
+                    group.setStudents(new HashSet<>());
+                }
+                group.getStudents().add(savedStudent);
+                groupRepository.save(group);
+            }
+        }
+
         LocalDate now = LocalDate.now();
         return convertToDto(savedStudent, now.getYear(), now.getMonthValue());
     }
 
+    @Transactional
     public void deleteStudent(Long id) {
-        if (!studentRepository.existsById(id)) {
-            throw new RuntimeException("Student not found with id: " + id);
+        Student student = studentRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+
+        // Remove student from all groups before deleting
+        List<Group> studentGroups = groupRepository.findByBranchId(student.getBranch().getId()).stream()
+                .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
+                .collect(Collectors.toList());
+
+        for (Group group : studentGroups) {
+            group.getStudents().remove(student);
+            groupRepository.save(group);
         }
+
         studentRepository.deleteById(id);
     }
 
-    // UPDATED: Enhanced convertToDto method with payment status calculation
+    // UPDATED: Enhanced convertToDto method with group information
     private StudentDto convertToDto(Student student, int year, int month) {
         StudentDto dto = new StudentDto();
         dto.setId(student.getId());
@@ -177,13 +255,34 @@ public class StudentService {
         dto.setBranchName(student.getBranch().getName());
         dto.setCreatedAt(student.getCreatedAt());
 
+        // Get groups the student belongs to
+        List<Group> studentGroups = groupRepository.findByBranchId(student.getBranch().getId()).stream()
+                .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
+                .collect(Collectors.toList());
+
+        List<StudentDto.GroupInfo> groupInfos = studentGroups.stream()
+                .map(group -> {
+                    String teacherName = group.getTeacher() != null ?
+                            group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName() : null;
+                    return new StudentDto.GroupInfo(
+                            group.getId(),
+                            group.getName(),
+                            group.getCourse().getId(),
+                            group.getCourse().getName(),
+                            teacherName
+                    );
+                })
+                .collect(Collectors.toList());
+
+        dto.setGroups(groupInfos);
+
         // Calculate payment status for the specified month/year
         calculatePaymentStatus(dto, student.getId(), year, month);
 
         return dto;
     }
 
-    // NEW: Calculate payment status for a student
+    // Calculate payment status for a student
     private void calculatePaymentStatus(StudentDto dto, Long studentId, int year, int month) {
         // Check if student has paid in the specified month
         Boolean hasPaid = studentRepository.hasStudentPaidInMonth(studentId, year, month);
@@ -238,8 +337,10 @@ public class StudentService {
         dto.setName(group.getName());
         dto.setCourseId(group.getCourse().getId());
         dto.setCourseName(group.getCourse().getName());
-        dto.setTeacherId(group.getTeacher().getId());
-        dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
+        if (group.getTeacher() != null) {
+            dto.setTeacherId(group.getTeacher().getId());
+            dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
+        }
         dto.setBranchId(group.getBranch().getId());
         dto.setBranchName(group.getBranch().getName());
         dto.setCreatedAt(group.getCreatedAt());
