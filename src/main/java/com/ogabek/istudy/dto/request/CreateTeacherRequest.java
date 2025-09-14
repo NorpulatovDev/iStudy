@@ -20,11 +20,8 @@ public class CreateTeacherRequest {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Noto'gri formatdagi telefon raqam")
     private String phoneNumber;
 
-    @DecimalMin(value = "0.0", inclusive = false, message = "Asosiy maosh 0 dan katta bo'lishi kerak")
     private BigDecimal baseSalary = BigDecimal.ZERO;
 
-    @DecimalMin(value = "0.0", message = "To'lov foizi 0-100% oralig'ida bo'lishi kerak!")
-    @DecimalMax(value = "100.0", message = "To'lov foizi 0-100% oralig'ida bo'lishi kerak!")
     private BigDecimal paymentPercentage = BigDecimal.ZERO;
 
     @NotNull(message = "Maosh turini kiritish majburiy")
