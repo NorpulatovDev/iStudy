@@ -9,6 +9,7 @@ import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -19,32 +20,37 @@ public class TeacherService {
     private final TeacherRepository teacherRepository;
     private final BranchRepository branchRepository;
 
+    @Transactional(readOnly = true)
     public List<TeacherDto> getTeachersByBranch(Long branchId) {
-        return teacherRepository.findByBranchId(branchId).stream()
+        return teacherRepository.findByBranchIdWithBranch(branchId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<TeacherDto> searchTeachersByName(Long branchId, String name) {
-        return teacherRepository.findByBranchIdAndFullName(branchId, name).stream()
+        return teacherRepository.findByBranchIdAndFullNameWithBranch(branchId, name).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public List<TeacherDto> getTeachersBySalaryType(Long branchId, String salaryType) {
-        List<Teacher> teachers = teacherRepository.findByBranchId(branchId);
-        return teachers.stream()
-                .filter(teacher -> teacher.getSalaryType().name().equals(salaryType.toUpperCase()))
+        SalaryType salaryTypeEnum = SalaryType.valueOf(salaryType.toUpperCase());
+        return teacherRepository.findByBranchIdAndSalaryTypeWithBranch(branchId, salaryTypeEnum)
+                .stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 
+    @Transactional(readOnly = true)
     public TeacherDto getTeacherById(Long id) {
-        Teacher teacher = teacherRepository.findById(id)
+        Teacher teacher = teacherRepository.findByIdWithBranch(id)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with id: " + id));
         return convertToDto(teacher);
     }
 
+    @Transactional
     public TeacherDto createTeacher(CreateTeacherRequest request) {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
@@ -62,8 +68,9 @@ public class TeacherService {
         return convertToDto(savedTeacher);
     }
 
+    @Transactional
     public TeacherDto updateTeacher(Long id, CreateTeacherRequest request) {
-        Teacher teacher = teacherRepository.findById(id)
+        Teacher teacher = teacherRepository.findByIdWithBranch(id)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with id: " + id));
 
         Branch branch = branchRepository.findById(request.getBranchId())
@@ -81,6 +88,7 @@ public class TeacherService {
         return convertToDto(savedTeacher);
     }
 
+    @Transactional
     public void deleteTeacher(Long id) {
         if (!teacherRepository.existsById(id)) {
             throw new RuntimeException("Teacher not found with id: " + id);
@@ -98,8 +106,13 @@ public class TeacherService {
         dto.setBaseSalary(teacher.getBaseSalary());
         dto.setPaymentPercentage(teacher.getPaymentPercentage());
         dto.setSalaryType(teacher.getSalaryType().name());
-        dto.setBranchId(teacher.getBranch().getId());
-        dto.setBranchName(teacher.getBranch().getName());
+
+        // Safe access to branch properties
+        if (teacher.getBranch() != null) {
+            dto.setBranchId(teacher.getBranch().getId());
+            dto.setBranchName(teacher.getBranch().getName());
+        }
+
         dto.setCreatedAt(teacher.getCreatedAt());
         return dto;
     }
