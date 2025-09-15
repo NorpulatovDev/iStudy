@@ -42,6 +42,16 @@ public class Group {
     @JoinColumn(name = "branch_id", nullable = false)
     private Branch branch;
 
+    // NEW: Schedule fields
+    @Column(name = "start_time")
+    private LocalTime startTime;
+
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
+    @Column(name = "days_of_week")
+    private String daysOfWeek; // Stored as "MONDAY,WEDNESDAY,FRIDAY"
+
     @CreationTimestamp
     private LocalDateTime createdAt;
 }

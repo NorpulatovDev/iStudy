@@ -18,11 +18,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -334,27 +330,28 @@ public class StudentService {
         return dto;
     }
 
-    private GroupDto convertGroupToDto(com.ogabek.istudy.entity.Group group) {
+    private GroupDto convertGroupToDto(Group group) {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
         dto.setName(group.getName());
+        dto.setCourseId(group.getCourse().getId());
+        dto.setCourseName(group.getCourse().getName());
 
-        // Safe access to course properties
-        if (group.getCourse() != null) {
-            dto.setCourseId(group.getCourse().getId());
-            dto.setCourseName(group.getCourse().getName());
-        }
-
-        // Safe access to teacher properties
         if (group.getTeacher() != null) {
             dto.setTeacherId(group.getTeacher().getId());
             dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
         }
 
-        // Safe access to branch properties
-        if (group.getBranch() != null) {
-            dto.setBranchId(group.getBranch().getId());
-            dto.setBranchName(group.getBranch().getName());
+        dto.setBranchId(group.getBranch().getId());
+        dto.setBranchName(group.getBranch().getName());
+
+        // ADD: Set schedule fields
+        dto.setStartTime(group.getStartTime());
+        dto.setEndTime(group.getEndTime());
+        if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
+            dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
+        } else {
+            dto.setDaysOfWeek(new ArrayList<>());
         }
 
         dto.setCreatedAt(group.getCreatedAt());

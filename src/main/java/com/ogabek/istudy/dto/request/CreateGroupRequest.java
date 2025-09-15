@@ -1,6 +1,5 @@
 package com.ogabek.istudy.dto.request;
 
-
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -14,7 +13,7 @@ import java.util.List;
 @Getter @Setter
 public class CreateGroupRequest {
     @NotBlank(message = "Guruh nomi majburiy")
-    @Size(min = 2, max = 50, message = "Guruh nomi 2-5 harfdan iborat bo'lishi kerak")
+    @Size(min = 2, max = 50, message = "Guruh nomi 2-50 harfdan iborat bo'lishi kerak")
     private String name;
 
     @NotNull(message = "Kurs majburiy")
@@ -27,4 +26,9 @@ public class CreateGroupRequest {
     private Long branchId;
 
     private List<Long> studentIds = new ArrayList<>();
+
+    // NEW: Schedule fields
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private List<String> daysOfWeek = new ArrayList<>(); // ["MONDAY", "WEDNESDAY", "FRIDAY"]
 }

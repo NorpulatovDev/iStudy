@@ -13,6 +13,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -120,11 +122,17 @@ public class CourseService {
 
         dto.setBranchId(group.getBranch().getId());
         dto.setBranchName(group.getBranch().getName());
+
+        // ADD: Set schedule fields
+        dto.setStartTime(group.getStartTime());
+        dto.setEndTime(group.getEndTime());
+        if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
+            dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
+        } else {
+            dto.setDaysOfWeek(new ArrayList<>());
+        }
+
         dto.setCreatedAt(group.getCreatedAt());
-
-        // Note: Not including students list here to avoid circular references and performance issues
-        // If you need students, call the specific group endpoint
-
         return dto;
     }
 }

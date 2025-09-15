@@ -7,8 +7,7 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.List;
 
-@Getter
- @Setter
+@Getter @Setter
 public class GroupDto {
     private Long id;
     private String name;
@@ -20,4 +19,9 @@ public class GroupDto {
     private String branchName;
     private List<StudentDto> students;
     private LocalDateTime createdAt;
+
+    // NEW: Schedule fields
+    private LocalTime startTime;
+    private LocalTime endTime;
+    private List<String> daysOfWeek; // ["MONDAY", "WEDNESDAY", "FRIDAY"]
 }
