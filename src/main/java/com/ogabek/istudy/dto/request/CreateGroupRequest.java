@@ -6,6 +6,7 @@ import jakarta.validation.constraints.Size;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -28,7 +29,7 @@ public class CreateGroupRequest {
     private List<Long> studentIds = new ArrayList<>();
 
     // NEW: Schedule fields
-    private LocalTime startTime;
-    private LocalTime endTime;
+    private LocalDateTime startTime;
+    private LocalDateTime endTime;
     private List<String> daysOfWeek = new ArrayList<>(); // ["MONDAY", "WEDNESDAY", "FRIDAY"]
 }
