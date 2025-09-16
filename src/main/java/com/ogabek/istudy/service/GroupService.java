@@ -73,7 +73,18 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // Add students to group
+        // ADD THESE LINES: Convert LocalDateTime to LocalTime
+        if (request.getStartTime() != null) {
+            group.setStartTime(request.getStartTime().toLocalTime());
+        }
+        if (request.getEndTime() != null) {
+            group.setEndTime(request.getEndTime().toLocalTime());
+        }
+        if (request.getDaysOfWeek() != null && !request.getDaysOfWeek().isEmpty()) {
+            group.setDaysOfWeek(String.join(",", request.getDaysOfWeek()));
+        }
+
+        // Add students to group (existing code...)
         if (request.getStudentIds() != null && !request.getStudentIds().isEmpty()) {
             Set<Student> students = new HashSet<>();
             for (Long studentId : request.getStudentIds()) {
@@ -112,7 +123,18 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // Update students in group
+        // ADD THESE LINES: Convert LocalDateTime to LocalTime
+        if (request.getStartTime() != null) {
+            group.setStartTime(request.getStartTime().toLocalTime());
+        }
+        if (request.getEndTime() != null) {
+            group.setEndTime(request.getEndTime().toLocalTime());
+        }
+        if (request.getDaysOfWeek() != null && !request.getDaysOfWeek().isEmpty()) {
+            group.setDaysOfWeek(String.join(",", request.getDaysOfWeek()));
+        }
+
+        // Update students in group (existing code...)
         if (request.getStudentIds() != null) {
             Set<Student> students = new HashSet<>();
             for (Long studentId : request.getStudentIds()) {
