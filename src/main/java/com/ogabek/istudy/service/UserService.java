@@ -132,6 +132,41 @@ public class UserService {
         refreshTokenService.deleteByUserId(userId);
     }
 
+    @Transactional
+    public UserDto updateUser(Long id, CreateUserRequest request) {
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+
+        // Check if username is being changed and if new username already exists
+        if (!user.getUsername().equals(request.getUsername()) &&
+                userRepository.existsByUsername(request.getUsername())) {
+            throw new RuntimeException("Username already exists: " + request.getUsername());
+        }
+
+        // Update basic fields
+        user.setUsername(request.getUsername());
+
+        // Only update password if provided (not empty)
+        if (request.getPassword() != null && !request.getPassword().trim().isEmpty()) {
+            user.setPassword(passwordEncoder.encode(request.getPassword()));
+        }
+
+        // Update role
+        user.setRole(Role.valueOf(request.getRole().toUpperCase()));
+
+        // Update branch assignment
+        if (request.getBranchId() != null) {
+            Branch branch = branchRepository.findById(request.getBranchId())
+                    .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
+            user.setBranch(branch);
+        } else {
+            user.setBranch(null); // Remove branch assignment (for SUPER_ADMIN)
+        }
+
+        User savedUser = userRepository.save(user);
+        return convertToDto(savedUser);
+    }
+
     private UserDto convertToDto(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());

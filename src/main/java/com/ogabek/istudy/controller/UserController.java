@@ -70,4 +70,17 @@ public class UserController {
         userService.deleteUser(id);
         return ResponseEntity.ok().build();
     }
+
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('SUPER_ADMIN')")
+    public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
+                                              @Valid @RequestBody CreateUserRequest request) {
+        // Prevent updating own account to avoid locking yourself out
+        if (id.equals(branchAccessControl.getCurrentUser().getId())) {
+            return ResponseEntity.badRequest().build();
+        }
+
+        UserDto user = userService.updateUser(id, request);
+        return ResponseEntity.ok(user);
+    }
 }
