@@ -7,7 +7,6 @@ import lombok.NoArgsConstructor;
 import org.hibernate.annotations.CreationTimestamp;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.Set;
 
 @Entity
@@ -42,12 +41,12 @@ public class Group {
     @JoinColumn(name = "branch_id", nullable = false)
     private Branch branch;
 
-    // NEW: Schedule fields
+    // UPDATED: Store time as String instead of LocalTime
     @Column(name = "start_time")
-    private LocalTime startTime;
+    private String startTime;  // Store as "13:00", "09:30", etc.
 
     @Column(name = "end_time")
-    private LocalTime endTime;
+    private String endTime;    // Store as "15:00", "11:30", etc.
 
     @Column(name = "days_of_week")
     private String daysOfWeek; // Stored as "MONDAY,WEDNESDAY,FRIDAY"

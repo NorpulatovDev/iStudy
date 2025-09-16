@@ -12,9 +12,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -73,18 +71,15 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // ADD THESE LINES: Convert LocalDateTime to LocalTime
-        if (request.getStartTime() != null) {
-            group.setStartTime(request.getStartTime().toLocalTime());
-        }
-        if (request.getEndTime() != null) {
-            group.setEndTime(request.getEndTime().toLocalTime());
-        }
+        // SIMPLE: Just assign strings directly
+        group.setStartTime(request.getStartTime());
+        group.setEndTime(request.getEndTime());
+
         if (request.getDaysOfWeek() != null && !request.getDaysOfWeek().isEmpty()) {
             group.setDaysOfWeek(String.join(",", request.getDaysOfWeek()));
         }
 
-        // Add students to group (existing code...)
+        // Add students to group
         if (request.getStudentIds() != null && !request.getStudentIds().isEmpty()) {
             Set<Student> students = new HashSet<>();
             for (Long studentId : request.getStudentIds()) {
@@ -104,6 +99,7 @@ public class GroupService {
         return convertToDto(groupWithRelations);
     }
 
+    // Update your updateGroup method similarly:
     @Transactional
     public GroupDto updateGroup(Long id, CreateGroupRequest request) {
         Group group = groupRepository.findByIdWithAllRelations(id)
@@ -123,18 +119,15 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // ADD THESE LINES: Convert LocalDateTime to LocalTime
-        if (request.getStartTime() != null) {
-            group.setStartTime(request.getStartTime().toLocalTime());
-        }
-        if (request.getEndTime() != null) {
-            group.setEndTime(request.getEndTime().toLocalTime());
-        }
+        // SIMPLE: Just assign strings directly
+        group.setStartTime(request.getStartTime());
+        group.setEndTime(request.getEndTime());
+
         if (request.getDaysOfWeek() != null && !request.getDaysOfWeek().isEmpty()) {
             group.setDaysOfWeek(String.join(",", request.getDaysOfWeek()));
         }
 
-        // Update students in group (existing code...)
+        // Update students in group
         if (request.getStudentIds() != null) {
             Set<Student> students = new HashSet<>();
             for (Long studentId : request.getStudentIds()) {
@@ -260,6 +253,16 @@ public class GroupService {
         if (group.getBranch() != null) {
             dto.setBranchId(group.getBranch().getId());
             dto.setBranchName(group.getBranch().getName());
+        }
+
+        // UPDATED: Direct string assignment (no conversion needed)
+        dto.setStartTime(group.getStartTime());  // String to String
+        dto.setEndTime(group.getEndTime());      // String to String
+
+        if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
+            dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
+        } else {
+            dto.setDaysOfWeek(new ArrayList<>());
         }
 
         // Convert students if present

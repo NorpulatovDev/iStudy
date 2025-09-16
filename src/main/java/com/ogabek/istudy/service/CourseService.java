@@ -108,6 +108,8 @@ public class CourseService {
         return dto;
     }
 
+    // In CourseService.java, update the convertGroupToDto method:
+
     private GroupDto convertGroupToDto(Group group) {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
@@ -123,9 +125,10 @@ public class CourseService {
         dto.setBranchId(group.getBranch().getId());
         dto.setBranchName(group.getBranch().getName());
 
-        // ADD: Set schedule fields
-        dto.setStartTime(group.getStartTime());
-        dto.setEndTime(group.getEndTime());
+        // UPDATED: Set schedule fields as String (not LocalTime)
+        dto.setStartTime(group.getStartTime());  // Already String now
+        dto.setEndTime(group.getEndTime());      // Already String now
+
         if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
             dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
         } else {

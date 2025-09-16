@@ -4,7 +4,6 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.time.LocalDateTime;
-import java.time.LocalTime;
 import java.util.List;
 
 @Getter @Setter
@@ -20,8 +19,8 @@ public class GroupDto {
     private List<StudentDto> students;
     private LocalDateTime createdAt;
 
-    // NEW: Schedule fields
-    private LocalTime startTime;
-    private LocalTime endTime;
+    // UPDATED: Return time as String
+    private String startTime;  // Returns "13:00", "09:30", etc.
+    private String endTime;    // Returns "15:00", "11:30", etc.
     private List<String> daysOfWeek; // ["MONDAY", "WEDNESDAY", "FRIDAY"]
 }
