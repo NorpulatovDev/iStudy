@@ -85,6 +85,14 @@ public class CourseService {
         if (!courseRepository.existsById(id)) {
             throw new RuntimeException("Course not found with id: " + id);
         }
+
+        // Check if course has groups
+        List<Group> courseGroups = groupRepository.findByCourseId(id);
+        if (!courseGroups.isEmpty()) {
+            throw new RuntimeException("Kursda guruhlar borligi uchun uni o'chira olmaysiz. Avval guruhlarni o'chiring!");
+        }
+
+        // If no groups, safe to delete
         courseRepository.deleteById(id);
     }
 
