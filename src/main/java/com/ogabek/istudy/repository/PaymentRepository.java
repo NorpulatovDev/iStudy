@@ -97,4 +97,13 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
             "WHERE g.teacher.id = :teacherId AND p.paymentYear = :year AND p.paymentMonth = :month")
     int countTeacherPaidStudents(@Param("teacherId") Long teacherId,
                                  @Param("year") int year, @Param("month") int month);
+
+
+    @Query("SELECT COALESCE(SUM(p.amount), 0) FROM Payment p " +
+            "WHERE p.student.id = :studentId AND p.course.id = :courseId " +
+            "AND p.paymentYear = :year AND p.paymentMonth = :month")
+    BigDecimal getTotalPaidByStudentForCourseInMonth(@Param("studentId") Long studentId,
+                                                     @Param("courseId") Long courseId,
+                                                     @Param("year") int year,
+                                                     @Param("month") int month);
 }

@@ -14,6 +14,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -58,7 +59,26 @@ public class PaymentService {
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
 
-        LocalDate now = LocalDate.now();
+        // Use payment year and month from request
+        int paymentYear = request.getPaymentYear();
+        int paymentMonth = request.getPaymentMonth();
+
+        // Check if student already paid for this course in specified month
+        BigDecimal totalPaidInMonth = paymentRepository.getTotalPaidByStudentForCourseInMonth(
+                student.getId(), course.getId(), paymentYear, paymentMonth);
+
+        BigDecimal newTotal = totalPaidInMonth.add(request.getAmount());
+
+        // Check if already fully paid
+        if (totalPaidInMonth.compareTo(course.getPrice()) >= 0) {
+            throw new RuntimeException("Bu oyda bu kurs uchun to'lov allaqachon to'liq amalga oshirilgan!");
+        }
+
+        // Check if new payment exceeds course price
+        if (newTotal.compareTo(course.getPrice()) > 0) {
+            BigDecimal remaining = course.getPrice().subtract(totalPaidInMonth);
+            throw new RuntimeException("To'lov miqdori kurs narxidan oshib ketmoqda! Qolgan miqdor: " + remaining);
+        }
 
         Payment payment = new Payment();
         payment.setStudent(student);
@@ -66,8 +86,8 @@ public class PaymentService {
         payment.setAmount(request.getAmount());
         payment.setDescription(request.getDescription());
         payment.setBranch(branch);
-        payment.setPaymentYear(now.getYear());
-        payment.setPaymentMonth(now.getMonthValue());
+        payment.setPaymentYear(paymentYear);  // Use from request
+        payment.setPaymentMonth(paymentMonth); // Use from request
 
         Payment savedPayment = paymentRepository.save(payment);
 
@@ -76,6 +96,14 @@ public class PaymentService {
                 .orElseThrow(() -> new RuntimeException("Failed to fetch created payment"));
 
         return convertToDto(paymentWithRelations);
+    }
+
+    @Transactional
+    public void deletePayment(Long id) {
+        if (!paymentRepository.existsById(id)) {
+            throw new RuntimeException("Payment not found with id: " + id);
+        }
+        paymentRepository.deleteById(id);
     }
 
     // NEW: Get payments by date range
@@ -121,14 +149,6 @@ public class PaymentService {
                 .limit(limit)
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
-    }
-
-    @Transactional
-    public void deletePayment(Long id) {
-        if (!paymentRepository.existsById(id)) {
-            throw new RuntimeException("Payment not found with id: " + id);
-        }
-        paymentRepository.deleteById(id);
     }
 
     private PaymentDto convertToDto(Payment payment) {

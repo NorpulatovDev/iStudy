@@ -1,7 +1,8 @@
 package com.ogabek.istudy.dto.request;
 
-
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Max;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Getter;
@@ -26,4 +27,14 @@ public class CreatePaymentRequest {
 
     @NotNull(message = "Filial majburiy")
     private Long branchId;
+
+    // NEW: Add payment year and month
+    @NotNull(message = "To'lov yili majburiy")
+    @Min(value = 2020, message = "Yil 2020 dan kichik bo'lmasligi kerak")
+    private Integer paymentYear;
+
+    @NotNull(message = "To'lov oyi majburiy")
+    @Min(value = 1, message = "Oy 1-12 oralig'ida bo'lishi kerak")
+    @Max(value = 12, message = "Oy 1-12 oralig'ida bo'lishi kerak")
+    private Integer paymentMonth;
 }
