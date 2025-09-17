@@ -3,9 +3,11 @@ package com.ogabek.istudy.service;
 import com.ogabek.istudy.dto.request.CreateTeacherRequest;
 import com.ogabek.istudy.dto.response.TeacherDto;
 import com.ogabek.istudy.entity.Branch;
+import com.ogabek.istudy.entity.Group;
 import com.ogabek.istudy.entity.SalaryType;
 import com.ogabek.istudy.entity.Teacher;
 import com.ogabek.istudy.repository.BranchRepository;
+import com.ogabek.istudy.repository.GroupRepository;
 import com.ogabek.istudy.repository.TeacherRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -19,6 +21,7 @@ import java.util.stream.Collectors;
 public class TeacherService {
     private final TeacherRepository teacherRepository;
     private final BranchRepository branchRepository;
+    private final GroupRepository groupRepository;
 
     @Transactional(readOnly = true)
     public List<TeacherDto> getTeachersByBranch(Long branchId) {
@@ -91,8 +94,15 @@ public class TeacherService {
     @Transactional
     public void deleteTeacher(Long id) {
         if (!teacherRepository.existsById(id)) {
-            throw new RuntimeException("Teacher not found with id: " + id);
+            throw new RuntimeException("O'qituvchi topilmadi: " + id);
         }
+
+        // Check if teacher has any groups assigned
+        List<Group> teacherGroups = groupRepository.findByTeacherId(id);
+        if (!teacherGroups.isEmpty()) {
+            throw new RuntimeException("Bu o'qituvchida guruhlar borligi uchun uni o'chira olmaysiz. Avval guruhlardan o'qituvchini olib tashlang!");
+        }
+
         teacherRepository.deleteById(id);
     }
 
