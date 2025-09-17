@@ -2,6 +2,7 @@ package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreateStudentRequest;
 import com.ogabek.istudy.dto.response.StudentDto;
+import com.ogabek.istudy.dto.response.UnpaidStudentDto;
 import com.ogabek.istudy.security.BranchAccessControl;
 import com.ogabek.istudy.service.StudentService;
 import jakarta.validation.Valid;
@@ -40,14 +41,14 @@ public class StudentController {
     }
 
     @GetMapping("/unpaid")
-    public ResponseEntity<List<StudentDto>> getUnpaidStudents(
+    public ResponseEntity<List<UnpaidStudentDto>> getUnpaidStudents(
             @RequestParam Long branchId,
             @RequestParam(required = false) Integer year,
             @RequestParam(required = false) Integer month) {
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(403).build();
         }
-        List<StudentDto> students = studentService.getUnpaidStudents(branchId, year, month);
+        List<UnpaidStudentDto> students = studentService.getUnpaidStudents(branchId, year, month);
         return ResponseEntity.ok(students);
     }
 

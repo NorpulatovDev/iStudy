@@ -4,6 +4,7 @@ import com.ogabek.istudy.dto.request.CreateStudentRequest;
 import com.ogabek.istudy.dto.response.GroupDto;
 import com.ogabek.istudy.dto.response.PaymentDto;
 import com.ogabek.istudy.dto.response.StudentDto;
+import com.ogabek.istudy.dto.response.UnpaidStudentDto;
 import com.ogabek.istudy.entity.Branch;
 import com.ogabek.istudy.entity.Group;
 import com.ogabek.istudy.entity.Student;
@@ -49,15 +50,50 @@ public class StudentService {
     }
 
     @Transactional(readOnly = true)
-    public List<StudentDto> getUnpaidStudents(Long branchId, Integer year, Integer month) {
-        LocalDate now = LocalDate.now();
-        int targetYear = year != null ? year : now.getYear();
-        int targetMonth = month != null ? month : now.getMonthValue();
+    public List<UnpaidStudentDto> getUnpaidStudents(Long branchId, Integer year, Integer month) {
+        List<UnpaidStudentDto> result = new ArrayList<>();
+        List<Group> branchGroups = groupRepository.findByBranchIdWithAllRelations(branchId);
 
-        return studentRepository.findUnpaidStudentsByBranchAndMonth(branchId, targetYear, targetMonth)
-                .stream()
-                .map(student -> convertToDto(student, targetYear, targetMonth))
-                .collect(Collectors.toList());
+        for (Group group : branchGroups) {
+            if (group.getStudents() != null && group.getCourse() != null) {
+                for (Student student : group.getStudents()) {
+                    BigDecimal totalPaid;
+
+                    if (year == null || month == null) {
+                        // All-time unpaid
+                        totalPaid = paymentRepository.findByStudentIdWithRelations(student.getId())
+                                .stream()
+                                .filter(payment -> payment.getCourse().getId().equals(group.getCourse().getId()))
+                                .map(payment -> payment.getAmount())
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    } else {
+                        // Monthly unpaid
+                        totalPaid = paymentRepository.findByStudentIdWithRelations(student.getId())
+                                .stream()
+                                .filter(payment -> payment.getPaymentYear() == year &&
+                                        payment.getPaymentMonth() == month &&
+                                        payment.getCourse().getId().equals(group.getCourse().getId()))
+                                .map(payment -> payment.getAmount())
+                                .reduce(BigDecimal.ZERO, BigDecimal::add);
+                    }
+
+                    BigDecimal remainingAmount = group.getCourse().getPrice().subtract(totalPaid);
+
+                    if (remainingAmount.compareTo(BigDecimal.ZERO) > 0) {
+                        result.add(new UnpaidStudentDto(
+                                student.getId(),
+                                student.getFirstName(),
+                                student.getLastName(),
+                                student.getPhoneNumber(),
+                                remainingAmount,
+                                group.getId()
+                        ));
+                    }
+                }
+            }
+        }
+
+        return result;
     }
 
     @Transactional(readOnly = true)
