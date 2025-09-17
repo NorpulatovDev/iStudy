@@ -123,4 +123,14 @@ public class PaymentController {
 
         return ResponseEntity.ok(payments);
     }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> deletePayment(@PathVariable Long id) {
+        PaymentDto payment = paymentService.getPaymentById(id);
+        if (!branchAccessControl.hasAccessToBranch(payment.getBranchId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+        paymentService.deletePayment(id);
+        return ResponseEntity.ok().build();
+    }
 }

@@ -123,6 +123,14 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
+    public void deletePayment(Long id) {
+        if (!paymentRepository.existsById(id)) {
+            throw new RuntimeException("Payment not found with id: " + id);
+        }
+        paymentRepository.deleteById(id);
+    }
+
     private PaymentDto convertToDto(Payment payment) {
         PaymentDto dto = new PaymentDto();
         dto.setId(payment.getId());
