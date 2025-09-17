@@ -86,7 +86,8 @@ public class StudentService {
                                 student.getLastName(),
                                 student.getPhoneNumber(),
                                 remainingAmount,
-                                group.getId()
+                                group.getId(),
+                                group.getName()
                         ));
                     }
                 }
