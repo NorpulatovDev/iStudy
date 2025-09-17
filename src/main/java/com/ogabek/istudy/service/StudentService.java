@@ -358,6 +358,8 @@ public class StudentService {
         dto.setStudentName(payment.getStudent().getFirstName() + " " + payment.getStudent().getLastName());
         dto.setCourseId(payment.getCourse().getId());
         dto.setCourseName(payment.getCourse().getName());
+        dto.setGroupId(payment.getGroup().getId()); // NEW
+        dto.setGroupName(payment.getGroup().getName()); // NEW
         dto.setAmount(payment.getAmount());
         dto.setDescription(payment.getDescription());
         dto.setStatus(payment.getStatus().name());

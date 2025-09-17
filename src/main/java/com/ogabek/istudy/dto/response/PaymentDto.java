@@ -14,6 +14,8 @@ public class PaymentDto {
     private String studentName;
     private Long courseId;
     private String courseName;
+    private Long groupId; // NEW
+    private String groupName; // NEW
     private BigDecimal amount;
     private String description;
     private String status;

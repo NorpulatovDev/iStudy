@@ -38,6 +38,10 @@ public class Payment {
     @JoinColumn(name = "branch_id", nullable = false)
     private Branch branch;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "group_id")
+    private Group group;
+
     // Payment month and year for tracking monthly payments
     private int paymentYear;
     private int paymentMonth;

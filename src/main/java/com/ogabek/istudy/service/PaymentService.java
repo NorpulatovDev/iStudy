@@ -98,6 +98,7 @@ public class PaymentService {
         Payment payment = new Payment();
         payment.setStudent(student);
         payment.setCourse(course);  // Course from group
+        payment.setGroup(group);
         payment.setAmount(request.getAmount());
         payment.setDescription(request.getDescription());
         payment.setBranch(branch);
@@ -190,6 +191,11 @@ public class PaymentService {
         if (payment.getBranch() != null) {
             dto.setBranchId(payment.getBranch().getId());
             dto.setBranchName(payment.getBranch().getName());
+        }
+
+        if (payment.getGroup()!= null) { // NEW
+            dto.setGroupId(payment.getGroup().getId());
+            dto.setGroupName(payment.getGroup().getName());
         }
 
         dto.setCreatedAt(payment.getCreatedAt());
