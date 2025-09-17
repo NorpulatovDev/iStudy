@@ -2,8 +2,10 @@ package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreatePaymentRequest;
 import com.ogabek.istudy.dto.response.PaymentDto;
+import com.ogabek.istudy.dto.response.UnpaidStudentDto;
 import com.ogabek.istudy.security.BranchAccessControl;
 import com.ogabek.istudy.service.PaymentService;
+import com.ogabek.istudy.service.StudentService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
@@ -21,6 +23,7 @@ import java.util.List;
 public class PaymentController {
 
     private final PaymentService paymentService;
+    private final StudentService studentService;
     private final BranchAccessControl branchAccessControl;
 
     @GetMapping
@@ -30,6 +33,18 @@ public class PaymentController {
         }
         List<PaymentDto> payments = paymentService.getPaymentsByBranch(branchId);
         return ResponseEntity.ok(payments);
+    }
+
+    @GetMapping("/unpaid")
+    public ResponseEntity<List<UnpaidStudentDto>> getUnpaidStudents(
+            @RequestParam Long branchId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+        if (!branchAccessControl.hasAccessToBranch(branchId)) {
+            return ResponseEntity.status(403).build();
+        }
+        List<UnpaidStudentDto> students = studentService.getUnpaidStudents(branchId, year, month);
+        return ResponseEntity.ok(students);
     }
 
     // NEW: Get payments by date range
