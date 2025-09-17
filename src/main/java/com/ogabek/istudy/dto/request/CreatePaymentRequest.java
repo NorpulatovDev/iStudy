@@ -15,8 +15,8 @@ public class CreatePaymentRequest {
     @NotNull(message = "O'quvchi majburiy")
     private Long studentId;
 
-    @NotNull(message = "Kurs majburiy")
-    private Long courseId;
+    @NotNull(message = "Guruh majburiy")
+    private Long groupId;  // Changed from courseId to groupId
 
     @NotNull(message = "Miqdor majburiy")
     @DecimalMin(value = "0.0", inclusive = false, message = "Miqdor 0 dan katta bo'lishi kerak")
@@ -28,7 +28,6 @@ public class CreatePaymentRequest {
     @NotNull(message = "Filial majburiy")
     private Long branchId;
 
-    // NEW: Add payment year and month
     @NotNull(message = "To'lov yili majburiy")
     @Min(value = 2020, message = "Yil 2020 dan kichik bo'lmasligi kerak")
     private Integer paymentYear;

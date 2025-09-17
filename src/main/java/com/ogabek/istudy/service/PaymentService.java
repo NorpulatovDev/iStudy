@@ -4,10 +4,12 @@ import com.ogabek.istudy.dto.request.CreatePaymentRequest;
 import com.ogabek.istudy.dto.response.PaymentDto;
 import com.ogabek.istudy.entity.Branch;
 import com.ogabek.istudy.entity.Course;
+import com.ogabek.istudy.entity.Group;
 import com.ogabek.istudy.entity.Payment;
 import com.ogabek.istudy.entity.Student;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.CourseRepository;
+import com.ogabek.istudy.repository.GroupRepository;
 import com.ogabek.istudy.repository.PaymentRepository;
 import com.ogabek.istudy.repository.StudentRepository;
 import lombok.RequiredArgsConstructor;
@@ -26,6 +28,7 @@ public class PaymentService {
     private final StudentRepository studentRepository;
     private final CourseRepository courseRepository;
     private final BranchRepository branchRepository;
+    private final GroupRepository groupRepository;
 
     @Transactional(readOnly = true)
     public List<PaymentDto> getPaymentsByBranch(Long branchId) {
@@ -53,8 +56,20 @@ public class PaymentService {
         Student student = studentRepository.findById(request.getStudentId())
                 .orElseThrow(() -> new RuntimeException("Student not found with id: " + request.getStudentId()));
 
-        Course course = courseRepository.findByIdWithBranch(request.getCourseId())
-                .orElseThrow(() -> new RuntimeException("Course not found with id: " + request.getCourseId()));
+        // Get group and validate student is in this group
+        Group group = groupRepository.findByIdWithAllRelations(request.getGroupId())
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + request.getGroupId()));
+
+        // Validate student is member of this group
+        if (group.getStudents() == null || !group.getStudents().contains(student)) {
+            throw new RuntimeException("O'quvchi bu guruhda yo'q!");
+        }
+
+        // Get course from group
+        if (group.getCourse() == null) {
+            throw new RuntimeException("Guruhda kurs mavjud emas!");
+        }
+        Course course = group.getCourse();
 
         Branch branch = branchRepository.findById(request.getBranchId())
                 .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
@@ -82,12 +97,12 @@ public class PaymentService {
 
         Payment payment = new Payment();
         payment.setStudent(student);
-        payment.setCourse(course);
+        payment.setCourse(course);  // Course from group
         payment.setAmount(request.getAmount());
         payment.setDescription(request.getDescription());
         payment.setBranch(branch);
-        payment.setPaymentYear(paymentYear);  // Use from request
-        payment.setPaymentMonth(paymentMonth); // Use from request
+        payment.setPaymentYear(paymentYear);
+        payment.setPaymentMonth(paymentMonth);
 
         Payment savedPayment = paymentRepository.save(payment);
 
