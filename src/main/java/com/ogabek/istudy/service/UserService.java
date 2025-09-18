@@ -2,6 +2,7 @@ package com.ogabek.istudy.service;
 
 import com.ogabek.istudy.dto.request.CreateUserRequest;
 import com.ogabek.istudy.dto.request.LoginRequest;
+import com.ogabek.istudy.dto.request.UpdateUserRequest;
 import com.ogabek.istudy.dto.response.JwtResponse;
 import com.ogabek.istudy.dto.response.UserDto;
 import com.ogabek.istudy.entity.Branch;
@@ -133,7 +134,7 @@ public class UserService {
     }
 
     @Transactional
-    public UserDto updateUser(Long id, CreateUserRequest request) {
+    public UserDto updateUser(Long id, UpdateUserRequest request) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
 

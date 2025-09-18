@@ -1,6 +1,7 @@
 package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreateUserRequest;
+import com.ogabek.istudy.dto.request.UpdateUserRequest;
 import com.ogabek.istudy.dto.response.UserDto;
 import com.ogabek.istudy.security.BranchAccessControl;
 import com.ogabek.istudy.service.UserService;
@@ -74,7 +75,7 @@ public class UserController {
     @PutMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")
     public ResponseEntity<UserDto> updateUser(@PathVariable Long id,
-                                              @Valid @RequestBody CreateUserRequest request) {
+                                              @Valid @RequestBody UpdateUserRequest request) {
         // Prevent updating own account to avoid locking yourself out
         if (id.equals(branchAccessControl.getCurrentUser().getId())) {
             return ResponseEntity.badRequest().build();
