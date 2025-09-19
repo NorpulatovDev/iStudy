@@ -56,6 +56,13 @@ public class GroupService {
         return convertToDto(group);
     }
 
+    @Transactional(readOnly = true)
+    public GroupDto getGroupById(Long id,  Integer year, Integer month) {
+        Group group = groupRepository.findByIdWithAllRelations(id)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + id));
+        return convertToDtoWithStudentPayments(group,  year, month);
+    }
+
     @Transactional
     public GroupDto createGroup(CreateGroupRequest request) {
         Course course = courseRepository.findByIdWithBranch(request.getCourseId())
@@ -188,18 +195,18 @@ public class GroupService {
     }
 
     // Get groups by teacher (backward compatibility)
-    @Transactional(readOnly = true)
-    public List<GroupDto> getGroupsByTeacher(Long teacherId) {
-        LocalDate now = LocalDate.now();
-        return getGroupsByTeacher(teacherId, now.getYear(), now.getMonthValue());
-    }
+//    @Transactional(readOnly = true)
+//    public List<GroupDto> getGroupsByTeacher(Long teacherId) {
+//        LocalDate now = LocalDate.now();
+//        return getGroupsByTeacher(teacherId, now.getYear(), now.getMonthValue());
+//    }
 
     // Get groups by course
     @Transactional(readOnly = true)
-    public List<GroupDto> getGroupsByCourse(Long courseId, int year, int month) {
+    public List<GroupDto> getGroupsByCourse(Long courseId) {
         LocalDate now = LocalDate.now();
         return groupRepository.findByCourseIdWithRelations(courseId).stream()
-                .map(group -> convertToDtoWithStudentPayments(group, now.getYear(), now.getMonthValue()))
+                .map(this::convertToDto)
                 .collect(Collectors.toList());
     }
 

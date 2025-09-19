@@ -32,8 +32,8 @@ public class GroupController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<GroupDto> getGroupById(@PathVariable Long id) {
-        GroupDto group = groupService.getGroupById(id);
+    public ResponseEntity<GroupDto> getGroupById(@PathVariable Long id,  @RequestParam Integer year, @RequestParam Integer month) {
+        GroupDto group = groupService.getGroupById(id,year, month);
         if (!branchAccessControl.hasAccessToBranch(group.getBranchId())) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
@@ -41,8 +41,8 @@ public class GroupController {
     }
 
     @GetMapping("/by-course")
-    public ResponseEntity<List<GroupDto>> getGroupsByCourse(@RequestParam Long courseId, @RequestParam int year, @RequestParam int month) {
-        List<GroupDto> groups = groupService.getGroupsByCourse(courseId, year, month);
+    public ResponseEntity<List<GroupDto>> getGroupsByCourse(@RequestParam Long courseId) {
+        List<GroupDto> groups = groupService.getGroupsByCourse(courseId);
 
         // Check access to the first group's branch (all groups should be from same course/branch)
         if (!groups.isEmpty() && !branchAccessControl.hasAccessToBranch(groups.get(0).getBranchId())) {
