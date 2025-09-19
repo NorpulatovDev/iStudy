@@ -14,6 +14,7 @@ public class StudentDto {
     private String firstName;
     private String lastName;
     private String phoneNumber;
+    private String parentPhoneNumber;
     private Long branchId;
     private String branchName;
     private LocalDateTime createdAt;
@@ -32,11 +33,12 @@ public class StudentDto {
     public StudentDto() {}
 
     public StudentDto(Long id, String firstName, String lastName, String phoneNumber,
-                      Long branchId, String branchName, LocalDateTime createdAt) {
+                      String parentPhoneNumber, Long branchId, String branchName, LocalDateTime createdAt) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
+        this.parentPhoneNumber = parentPhoneNumber;
         this.branchId = branchId;
         this.branchName = branchName;
         this.createdAt = createdAt;

@@ -16,10 +16,9 @@ public class GroupDto {
     private String teacherName;
     private Long branchId;
     private String branchName;
-    private List<StudentDto> students;
+    private List<StudentPaymentInfo> studentPayments;
     private LocalDateTime createdAt;
 
-    // UPDATED: Return time as String
     private String startTime;  // Returns "13:00", "09:30", etc.
     private String endTime;    // Returns "15:00", "11:30", etc.
     private List<String> daysOfWeek; // ["MONDAY", "WEDNESDAY", "FRIDAY"]

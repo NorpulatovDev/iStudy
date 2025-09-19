@@ -23,6 +23,9 @@ public class CreateStudentRequest {
     @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Noto'gri formatdagi telefon raqam")
     private String phoneNumber;
 
+    @Pattern(regexp = "^\\+?[1-9]\\d{1,14}$", message = "Noto'gri formatdagi telefon raqam")
+    private String parentPhoneNumber;
+
     @NotNull(message = "Filial kiritish majburiy")
     private Long branchId;
 

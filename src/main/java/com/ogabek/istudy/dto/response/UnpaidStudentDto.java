@@ -10,16 +10,18 @@ public class UnpaidStudentDto {
     private String firstName;
     private String lastName;
     private String phoneNumber;
+    private String parentPhoneNumber; // new
     private BigDecimal remainingAmount;
     private String groupName;
     private Long groupId;
     
     public UnpaidStudentDto(Long id, String firstName, String lastName, String phoneNumber, 
-                           BigDecimal remainingAmount, Long groupId, String groupName) {
+                           String parentPhoneNumber, BigDecimal remainingAmount, Long groupId, String groupName) {
         this.id = id;
         this.firstName = firstName;
         this.lastName = lastName;
         this.phoneNumber = phoneNumber;
+        this.parentPhoneNumber = parentPhoneNumber;
         this.remainingAmount = remainingAmount;
         this.groupId = groupId;
         this.groupName = groupName;

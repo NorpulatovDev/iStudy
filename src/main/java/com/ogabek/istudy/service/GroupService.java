@@ -3,6 +3,7 @@ package com.ogabek.istudy.service;
 import com.ogabek.istudy.dto.request.CreateGroupRequest;
 import com.ogabek.istudy.dto.response.GroupDto;
 import com.ogabek.istudy.dto.response.StudentDto;
+import com.ogabek.istudy.dto.response.StudentPaymentInfo;
 import com.ogabek.istudy.entity.*;
 import com.ogabek.istudy.repository.*;
 import lombok.RequiredArgsConstructor;
@@ -23,6 +24,7 @@ public class GroupService {
     private final TeacherRepository teacherRepository;
     private final BranchRepository branchRepository;
     private final StudentRepository studentRepository;
+    private final PaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     public List<GroupDto> getGroupsByBranch(Long branchId) {
@@ -71,7 +73,7 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // SIMPLE: Just assign strings directly
+        // Set schedule as strings
         group.setStartTime(request.getStartTime());
         group.setEndTime(request.getEndTime());
 
@@ -99,7 +101,6 @@ public class GroupService {
         return convertToDto(groupWithRelations);
     }
 
-    // Update your updateGroup method similarly:
     @Transactional
     public GroupDto updateGroup(Long id, CreateGroupRequest request) {
         Group group = groupRepository.findByIdWithAllRelations(id)
@@ -119,7 +120,7 @@ public class GroupService {
         group.setTeacher(teacher);
         group.setBranch(branch);
 
-        // SIMPLE: Just assign strings directly
+        // Set schedule as strings
         group.setStartTime(request.getStartTime());
         group.setEndTime(request.getEndTime());
 
@@ -178,12 +179,19 @@ public class GroupService {
                 .collect(Collectors.toList());
     }
 
-    // Get groups by teacher
+    // Get groups by teacher with payment information
+    @Transactional(readOnly = true)
+    public List<GroupDto> getGroupsByTeacher(Long teacherId, int year, int month) {
+        return groupRepository.findByTeacherIdWithRelations(teacherId).stream()
+                .map(group -> convertToDtoWithStudentPayments(group, year, month))
+                .collect(Collectors.toList());
+    }
+
+    // Get groups by teacher (backward compatibility)
     @Transactional(readOnly = true)
     public List<GroupDto> getGroupsByTeacher(Long teacherId) {
-        return groupRepository.findByTeacherIdWithRelations(teacherId).stream()
-                .map(this::convertToDto)
-                .collect(Collectors.toList());
+        LocalDate now = LocalDate.now();
+        return getGroupsByTeacher(teacherId, now.getYear(), now.getMonthValue());
     }
 
     // Get groups by course
@@ -240,6 +248,7 @@ public class GroupService {
         return convertToDto(group);
     }
 
+    // Regular conversion without payment information
     private GroupDto convertToDto(Group group) {
         GroupDto dto = new GroupDto();
         dto.setId(group.getId());
@@ -263,9 +272,9 @@ public class GroupService {
             dto.setBranchName(group.getBranch().getName());
         }
 
-        // UPDATED: Direct string assignment (no conversion needed)
-        dto.setStartTime(group.getStartTime());  // String to String
-        dto.setEndTime(group.getEndTime());      // String to String
+        // Set schedule fields as String
+        dto.setStartTime(group.getStartTime());
+        dto.setEndTime(group.getEndTime());
 
         if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
             dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
@@ -273,17 +282,93 @@ public class GroupService {
             dto.setDaysOfWeek(new ArrayList<>());
         }
 
-        // Convert students if present
-        if (group.getStudents() != null) {
-            LocalDate now = LocalDate.now();
-            List<StudentDto> studentDtos = group.getStudents().stream()
-                    .map(student -> convertStudentToDto(student, now.getYear(), now.getMonthValue()))
-                    .collect(Collectors.toList());
-            dto.setStudents(studentDtos);
+        dto.setCreatedAt(group.getCreatedAt());
+        return dto;
+    }
+
+    // Conversion with student payment information (for teacher groups)
+    private GroupDto convertToDtoWithStudentPayments(Group group, int year, int month) {
+        GroupDto dto = new GroupDto();
+        dto.setId(group.getId());
+        dto.setName(group.getName());
+
+        // Safe access to course properties
+        if (group.getCourse() != null) {
+            dto.setCourseId(group.getCourse().getId());
+            dto.setCourseName(group.getCourse().getName());
+        }
+
+        // Safe access to teacher properties
+        if (group.getTeacher() != null) {
+            dto.setTeacherId(group.getTeacher().getId());
+            dto.setTeacherName(group.getTeacher().getFirstName() + " " + group.getTeacher().getLastName());
+        }
+
+        // Safe access to branch properties
+        if (group.getBranch() != null) {
+            dto.setBranchId(group.getBranch().getId());
+            dto.setBranchName(group.getBranch().getName());
+        }
+
+        dto.setStartTime(group.getStartTime());
+        dto.setEndTime(group.getEndTime());
+
+        if (group.getDaysOfWeek() != null && !group.getDaysOfWeek().isEmpty()) {
+            dto.setDaysOfWeek(Arrays.asList(group.getDaysOfWeek().split(",")));
+        } else {
+            dto.setDaysOfWeek(new ArrayList<>());
         }
 
         dto.setCreatedAt(group.getCreatedAt());
+
+        // Calculate student payments for this group
+        calculateStudentPayments(dto, group, year, month);
+
         return dto;
+    }
+
+    private void calculateStudentPayments(GroupDto dto, Group group, int year, int month) {
+        List<StudentPaymentInfo> studentPayments = new ArrayList<>();
+
+        BigDecimal coursePrice = group.getCourse() != null ? group.getCourse().getPrice() : BigDecimal.ZERO;
+
+        if (group.getStudents() != null) {
+            for (Student student : group.getStudents()) {
+                // Get total payment for this student in this group for the specified month
+                BigDecimal studentTotalPaid = paymentRepository.getTotalPaidByStudentInGroupForMonth(
+                        student.getId(), group.getId(), year, month
+                );
+                studentTotalPaid = studentTotalPaid != null ? studentTotalPaid : BigDecimal.ZERO;
+
+                // Calculate remaining amount for this student
+                BigDecimal remainingAmount = coursePrice.subtract(studentTotalPaid);
+                remainingAmount = remainingAmount.compareTo(BigDecimal.ZERO) > 0 ? remainingAmount : BigDecimal.ZERO;
+
+                // Determine payment status
+                String paymentStatus;
+                if (studentTotalPaid.compareTo(BigDecimal.ZERO) == 0) {
+                    paymentStatus = "UNPAID";
+                } else if (studentTotalPaid.compareTo(coursePrice) >= 0) {
+                    paymentStatus = "PAID";
+                } else {
+                    paymentStatus = "PARTIAL";
+                }
+
+                StudentPaymentInfo paymentInfo = new StudentPaymentInfo(
+                        student.getId(),
+                        student.getFirstName() + " " + student.getLastName(),
+                        studentTotalPaid,
+                        coursePrice,
+                        remainingAmount,
+                        paymentStatus
+                );
+
+                studentPayments.add(paymentInfo);
+            }
+        }
+
+        // Set student payment information
+        dto.setStudentPayments(studentPayments);
     }
 
     // Enhanced convertStudentToDto with payment status calculation

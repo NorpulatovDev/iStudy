@@ -85,6 +85,7 @@ public class StudentService {
                                 student.getFirstName(),
                                 student.getLastName(),
                                 student.getPhoneNumber(),
+                                student.getParentPhoneNumber(),
                                 remainingAmount,
                                 group.getId(),
                                 group.getName()
@@ -178,6 +179,7 @@ public class StudentService {
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPhoneNumber(request.getPhoneNumber());
+        student.setParentPhoneNumber(request.getParentPhoneNumber()); // new
         student.setBranch(branch);
 
         Student savedStudent = studentRepository.save(student);
@@ -217,6 +219,7 @@ public class StudentService {
         student.setFirstName(request.getFirstName());
         student.setLastName(request.getLastName());
         student.setPhoneNumber(request.getPhoneNumber());
+        student.setParentPhoneNumber(request.getParentPhoneNumber()); // new
         student.setBranch(branch);
 
         Student savedStudent = studentRepository.save(student);
@@ -280,6 +283,7 @@ public class StudentService {
         dto.setFirstName(student.getFirstName());
         dto.setLastName(student.getLastName());
         dto.setPhoneNumber(student.getPhoneNumber());
+        dto.setParentPhoneNumber(student.getParentPhoneNumber()); // new
 
         // Safe access to branch properties
         if (student.getBranch() != null) {

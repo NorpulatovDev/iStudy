@@ -24,6 +24,7 @@ public class Student {
     @Column(nullable = false)
     private String lastName;
     private String phoneNumber;
+    private String parentPhoneNumber; // new
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "branch_id", nullable = false)
