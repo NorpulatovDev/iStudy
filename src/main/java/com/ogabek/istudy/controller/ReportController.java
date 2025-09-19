@@ -16,7 +16,7 @@ import java.util.Map;
 @RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class ReportController {
-    
+
     private final ReportService reportService;
     private final BranchAccessControl branchAccessControl;
 
@@ -25,11 +25,11 @@ public class ReportController {
     public ResponseEntity<Map<String, Object>> getDailyPaymentReport(
             @RequestParam Long branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getDailyPaymentReport(branchId, date);
         return ResponseEntity.ok(report);
     }
@@ -39,11 +39,11 @@ public class ReportController {
             @RequestParam Long branchId,
             @RequestParam Integer year,
             @RequestParam Integer month) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getMonthlyPaymentReport(branchId, year, month);
         return ResponseEntity.ok(report);
     }
@@ -53,25 +53,25 @@ public class ReportController {
             @RequestParam Long branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getPaymentRangeReport(branchId, startDate, endDate);
         return ResponseEntity.ok(report);
     }
 
-    // Expense Reports
+    // Enhanced Expense Reports (including salary payments)
     @GetMapping("/expenses/daily")
     public ResponseEntity<Map<String, Object>> getDailyExpenseReport(
             @RequestParam Long branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate date) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getDailyExpenseReport(branchId, date);
         return ResponseEntity.ok(report);
     }
@@ -81,11 +81,11 @@ public class ReportController {
             @RequestParam Long branchId,
             @RequestParam Integer year,
             @RequestParam Integer month) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getMonthlyExpenseReport(branchId, year, month);
         return ResponseEntity.ok(report);
     }
@@ -95,11 +95,11 @@ public class ReportController {
             @RequestParam Long branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getExpenseRangeReport(branchId, startDate, endDate);
         return ResponseEntity.ok(report);
     }
@@ -109,53 +109,22 @@ public class ReportController {
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> report = reportService.getAllTimeExpenseReport(branchId);
         return ResponseEntity.ok(report);
     }
 
-    // Salary Reports
-    @GetMapping("/salaries/monthly")
-    public ResponseEntity<Map<String, Object>> getMonthlySalaryReport(
-            @RequestParam Long branchId,
-            @RequestParam Integer year,
-            @RequestParam Integer month) {
-        
-        if (!branchAccessControl.hasAccessToBranch(branchId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        
-        Map<String, Object> report = reportService.getMonthlySalaryReport(branchId, year, month);
-        return ResponseEntity.ok(report);
-    }
-
-    @GetMapping("/salaries/range")
-    public ResponseEntity<Map<String, Object>> getSalaryRangeReport(
-            @RequestParam Long branchId,
-            @RequestParam Integer startYear,
-            @RequestParam Integer startMonth,
-            @RequestParam Integer endYear,
-            @RequestParam Integer endMonth) {
-        
-        if (!branchAccessControl.hasAccessToBranch(branchId)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
-        }
-        
-        Map<String, Object> report = reportService.getSalaryRangeReport(branchId, startYear, startMonth, endYear, endMonth);
-        return ResponseEntity.ok(report);
-    }
-
-    // Combined Financial Reports
+    // Enhanced Financial Reports (including salary payments)
     @GetMapping("/financial/summary")
     public ResponseEntity<Map<String, Object>> getFinancialSummary(
             @RequestParam Long branchId,
             @RequestParam Integer year,
             @RequestParam Integer month) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> summary = reportService.getFinancialSummary(branchId, year, month);
         return ResponseEntity.ok(summary);
     }
@@ -165,11 +134,11 @@ public class ReportController {
             @RequestParam Long branchId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate startDate,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate endDate) {
-        
+
         if (!branchAccessControl.hasAccessToBranch(branchId)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        
+
         Map<String, Object> summary = reportService.getFinancialSummaryRange(branchId, startDate, endDate);
         return ResponseEntity.ok(summary);
     }
