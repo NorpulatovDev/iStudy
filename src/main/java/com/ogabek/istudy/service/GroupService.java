@@ -199,7 +199,7 @@ public class GroupService {
     public List<GroupDto> getGroupsByCourse(Long courseId, int year, int month) {
         LocalDate now = LocalDate.now();
         return groupRepository.findByCourseIdWithRelations(courseId).stream()
-                .map(group -> convertToDtoWithStudentPayments(group, year, month))
+                .map(group -> convertToDtoWithStudentPayments(group, now.getYear(), now.getMonthValue()))
                 .collect(Collectors.toList());
     }
 
