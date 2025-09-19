@@ -41,8 +41,8 @@ public class GroupController {
     }
 
     @GetMapping("/by-course")
-    public ResponseEntity<List<GroupDto>> getGroupsByCourse(@RequestParam Long courseId) {
-        List<GroupDto> groups = groupService.getGroupsByCourse(courseId);
+    public ResponseEntity<List<GroupDto>> getGroupsByCourse(@RequestParam Long courseId, @RequestParam int year, @RequestParam int month) {
+        List<GroupDto> groups = groupService.getGroupsByCourse(courseId, year, month);
 
         // Check access to the first group's branch (all groups should be from same course/branch)
         if (!groups.isEmpty() && !branchAccessControl.hasAccessToBranch(groups.get(0).getBranchId())) {

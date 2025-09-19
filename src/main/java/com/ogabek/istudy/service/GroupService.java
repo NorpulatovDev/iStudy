@@ -196,9 +196,10 @@ public class GroupService {
 
     // Get groups by course
     @Transactional(readOnly = true)
-    public List<GroupDto> getGroupsByCourse(Long courseId) {
+    public List<GroupDto> getGroupsByCourse(Long courseId, int year, int month) {
+        LocalDate now = LocalDate.now();
         return groupRepository.findByCourseIdWithRelations(courseId).stream()
-                .map(this::convertToDto)
+                .map(group -> convertToDtoWithStudentPayments(group, year, month))
                 .collect(Collectors.toList());
     }
 
@@ -357,6 +358,8 @@ public class GroupService {
                 StudentPaymentInfo paymentInfo = new StudentPaymentInfo(
                         student.getId(),
                         student.getFirstName() + " " + student.getLastName(),
+                        student.getPhoneNumber(),
+                        student.getParentPhoneNumber(),
                         studentTotalPaid,
                         coursePrice,
                         remainingAmount,

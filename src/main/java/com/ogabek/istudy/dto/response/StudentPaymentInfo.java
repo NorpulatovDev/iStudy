@@ -13,6 +13,8 @@ import java.math.BigDecimal;
 public class StudentPaymentInfo {
     private Long studentId;
     private String studentName;
+    private String phoneNumber;
+    private String parentPhoneNumber;
     private BigDecimal totalPaidInMonth;
     private BigDecimal coursePrice;
     private BigDecimal remainingAmount;
