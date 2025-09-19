@@ -195,11 +195,11 @@ public class GroupService {
     }
 
     // Get groups by teacher (backward compatibility)
-//    @Transactional(readOnly = true)
-//    public List<GroupDto> getGroupsByTeacher(Long teacherId) {
-//        LocalDate now = LocalDate.now();
-//        return getGroupsByTeacher(teacherId, now.getYear(), now.getMonthValue());
-//    }
+    @Transactional(readOnly = true)
+    public List<GroupDto> getGroupsByTeacher(Long teacherId) {
+        LocalDate now = LocalDate.now();
+        return getGroupsByTeacher(teacherId, now.getYear(), now.getMonthValue());
+    }
 
     // Get groups by course
     @Transactional(readOnly = true)
