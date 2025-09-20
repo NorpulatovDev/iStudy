@@ -40,6 +40,23 @@ public class StudentController {
         return ResponseEntity.ok(students);
     }
 
+    // NEW: Get students by group
+    @GetMapping("/by-group")
+    public ResponseEntity<List<StudentDto>> getStudentsByGroup(
+            @RequestParam Long groupId,
+            @RequestParam(required = false) Integer year,
+            @RequestParam(required = false) Integer month) {
+
+        List<StudentDto> students = studentService.getStudentsByGroup(groupId, year, month);
+
+        // Check access to the first student's branch (all students should be from same branch)
+        if (!students.isEmpty() && !branchAccessControl.hasAccessToBranch(students.get(0).getBranchId())) {
+            return ResponseEntity.status(403).build();
+        }
+
+        return ResponseEntity.ok(students);
+    }
+
     @GetMapping("/unpaid")
     public ResponseEntity<List<UnpaidStudentDto>> getUnpaidStudents(
             @RequestParam Long branchId,

@@ -50,6 +50,24 @@ public class StudentService {
     }
 
     @Transactional(readOnly = true)
+    public List<StudentDto> getStudentsByGroup(Long groupId, Integer year, Integer month) {
+        Group group = groupRepository.findByIdWithAllRelations(groupId)
+                .orElseThrow(() -> new RuntimeException("Group not found with id: " + groupId));
+
+        LocalDate now = LocalDate.now();
+        int targetYear = year != null ? year : now.getYear();
+        int targetMonth = month != null ? month : now.getMonthValue();
+
+        if (group.getStudents() == null || group.getStudents().isEmpty()) {
+            return new ArrayList<>();
+        }
+
+        return group.getStudents().stream()
+                .map(student -> convertToDto(student, targetYear, targetMonth))
+                .collect(Collectors.toList());
+    }
+
+    @Transactional(readOnly = true)
     public List<UnpaidStudentDto> getUnpaidStudents(Long branchId, Integer year, Integer month) {
         List<UnpaidStudentDto> result = new ArrayList<>();
         List<Group> branchGroups = groupRepository.findByBranchIdWithAllRelations(branchId);
