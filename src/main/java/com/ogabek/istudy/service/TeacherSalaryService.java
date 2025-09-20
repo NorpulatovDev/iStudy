@@ -1,6 +1,7 @@
 package com.ogabek.istudy.service;
 
 import com.ogabek.istudy.dto.request.CreateSalaryPaymentRequest;
+import com.ogabek.istudy.dto.response.GroupSalaryInfo;
 import com.ogabek.istudy.dto.response.SalaryCalculationDto;
 import com.ogabek.istudy.dto.response.TeacherSalaryHistoryDto;
 import com.ogabek.istudy.dto.response.TeacherSalaryPaymentDto;
@@ -24,18 +25,53 @@ public class TeacherSalaryService {
     private final TeacherRepository teacherRepository;
     private final BranchRepository branchRepository;
     private final PaymentRepository paymentRepository;
+    private final GroupRepository groupRepository;
 
-    // Calculate salary on-demand (not stored)
+    // Calculate salary on-demand (not stored) with group information
     @Transactional(readOnly = true)
     public SalaryCalculationDto calculateTeacherSalary(Long teacherId, int year, int month) {
         Teacher teacher = teacherRepository.findByIdWithBranch(teacherId)
                 .orElseThrow(() -> new RuntimeException("Teacher not found with id: " + teacherId));
 
-        // Get teacher's student payments for the month
-        BigDecimal totalStudentPayments = paymentRepository.sumTeacherStudentPayments(teacherId, year, month);
-        totalStudentPayments = totalStudentPayments != null ? totalStudentPayments : BigDecimal.ZERO;
+        // Get teacher's groups with relations
+        List<Group> teacherGroups = groupRepository.findByTeacherIdWithRelations(teacherId);
 
-        int totalStudents = paymentRepository.countTeacherPaidStudents(teacherId, year, month);
+        // Calculate group salary information
+        List<GroupSalaryInfo> groupInfos = new ArrayList<>();
+        BigDecimal totalStudentPayments = BigDecimal.ZERO;
+        int totalStudents = 0;
+
+        for (Group group : teacherGroups) {
+            // Count students in this group who paid in the specified month
+            int groupStudentCount = 0;
+            BigDecimal groupPayments = BigDecimal.ZERO;
+
+            if (group.getStudents() != null) {
+                for (Student student : group.getStudents()) {
+                    // Check if student made payment for this group in the specified month
+                    BigDecimal studentGroupPayment = paymentRepository.getTotalPaidByStudentInGroupForMonth(
+                            student.getId(), group.getId(), year, month);
+
+                    if (studentGroupPayment.compareTo(BigDecimal.ZERO) > 0) {
+                        groupStudentCount++;
+                        groupPayments = groupPayments.add(studentGroupPayment);
+                    }
+                }
+            }
+
+            totalStudents += groupStudentCount;
+            totalStudentPayments = totalStudentPayments.add(groupPayments);
+
+            // Create group info
+            GroupSalaryInfo groupInfo = new GroupSalaryInfo(
+                    group.getId(),
+                    group.getName(),
+                    group.getCourse() != null ? group.getCourse().getName() : "N/A",
+                    groupStudentCount,
+                    groupPayments
+            );
+            groupInfos.add(groupInfo);
+        }
 
         // Calculate salary based on teacher's salary type
         BigDecimal baseSalary = teacher.getBaseSalary() != null ? teacher.getBaseSalary() : BigDecimal.ZERO;
@@ -70,28 +106,33 @@ public class TeacherSalaryService {
         BigDecimal remainingAmount = totalSalary.subtract(alreadyPaid);
         remainingAmount = remainingAmount.compareTo(BigDecimal.ZERO) > 0 ? remainingAmount : BigDecimal.ZERO;
 
-        return new SalaryCalculationDto(
-                teacherId,
-                teacher.getFirstName() + " " + teacher.getLastName(),
-                year,
-                month,
-                baseSalary,
-                paymentBasedSalary,
-                totalSalary,
-                totalStudentPayments,
-                totalStudents,
-                alreadyPaid,
-                remainingAmount,
-                teacher.getBranch().getId(),
-                teacher.getBranch().getName()
-        );
+        // Create DTO with constructor that matches the existing constructor
+        SalaryCalculationDto dto = new SalaryCalculationDto();
+        dto.setTeacherId(teacherId);
+        dto.setTeacherName(teacher.getFirstName() + " " + teacher.getLastName());
+        dto.setYear(year);
+        dto.setMonth(month);
+        dto.setBaseSalary(baseSalary);
+        dto.setPaymentBasedSalary(paymentBasedSalary);
+        dto.setTotalSalary(totalSalary);
+        dto.setTotalStudentPayments(totalStudentPayments);
+        dto.setTotalStudents(totalStudents);
+        dto.setAlreadyPaid(alreadyPaid);
+        dto.setRemainingAmount(remainingAmount);
+        dto.setBranchId(teacher.getBranch().getId());
+        dto.setBranchName(teacher.getBranch().getName());
+//        dto.setGroups(groupInfos);
+        // Set group information separately
+        dto.setGroups(groupInfos);
+
+        return dto;
     }
 
     // Calculate salaries for all teachers in branch
     @Transactional(readOnly = true)
     public List<SalaryCalculationDto> calculateSalariesForBranch(Long branchId, int year, int month) {
         List<Teacher> teachers = teacherRepository.findByBranchIdWithBranch(branchId);
-        
+
         return teachers.stream()
                 .map(teacher -> calculateTeacherSalary(teacher.getId(), year, month))
                 .collect(Collectors.toList());
@@ -111,10 +152,10 @@ public class TeacherSalaryService {
         // Calculate current expected salary
         SalaryCalculationDto calculation = calculateTeacherSalary(
                 request.getTeacherId(), request.getYear(), request.getMonth());
-        
+
         // Validate payment amount
         if (request.getAmount().compareTo(calculation.getRemainingAmount()) > 0) {
-            throw new RuntimeException("To'lov miqdori qolgan maoshdan oshib ketmoqda! Qolgan miqdor: " + 
+            throw new RuntimeException("To'lov miqdori qolgan maoshdan oshib ketmoqda! Qolgan miqdor: " +
                     calculation.getRemainingAmount());
         }
 
@@ -170,12 +211,12 @@ public class TeacherSalaryService {
 
             // Calculate salary for this month
             SalaryCalculationDto calculation = calculateTeacherSalary(teacherId, year, month);
-            
+
             // Get payment details
             BigDecimal totalPaid = salaryPaymentRepository.sumByTeacherAndYearAndMonth(teacherId, year, month);
             LocalDateTime lastPaymentDate = salaryPaymentRepository.getLastPaymentDate(teacherId, year, month);
             int paymentCount = salaryPaymentRepository.countPaymentsByTeacherAndYearAndMonth(teacherId, year, month);
-            
+
             totalPaid = totalPaid != null ? totalPaid : BigDecimal.ZERO;
             BigDecimal remainingAmount = calculation.getTotalSalary().subtract(totalPaid);
             remainingAmount = remainingAmount.compareTo(BigDecimal.ZERO) > 0 ? remainingAmount : BigDecimal.ZERO;
