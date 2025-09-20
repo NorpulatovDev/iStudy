@@ -48,6 +48,11 @@ public interface StudentRepository extends JpaRepository<Student, Long> {
     BigDecimal getExpectedMonthlyPaymentForStudent(@Param("studentId") Long studentId);
 
     // NEW: Get students with payment details for specific month
-    @Query("SELECT s FROM Student s LEFT JOIN FETCH s.branch WHERE s.branch.id = :branchId")
+    @Query("""
+    SELECT s FROM Student s 
+    LEFT JOIN FETCH s.branch 
+    WHERE s.branch.id = :branchId 
+    ORDER BY s.lastName ASC, s.firstName ASC
+    """)
     List<Student> findByBranchIdWithBranch(@Param("branchId") Long branchId);
 }

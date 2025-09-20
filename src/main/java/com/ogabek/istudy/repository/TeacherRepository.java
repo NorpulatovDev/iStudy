@@ -14,7 +14,7 @@ import java.util.Optional;
 public interface TeacherRepository extends JpaRepository<Teacher, Long> {
 
     // Fetch teachers with branch eagerly loaded
-    @Query("SELECT t FROM Teacher t LEFT JOIN FETCH t.branch WHERE t.branch.id = :branchId")
+    @Query("SELECT t FROM Teacher t LEFT JOIN FETCH t.branch WHERE t.branch.id = :branchId ORDER BY t.createdAt ASC ")
     List<Teacher> findByBranchIdWithBranch(@Param("branchId") Long branchId);
 
     // Fetch single teacher with branch eagerly loaded
