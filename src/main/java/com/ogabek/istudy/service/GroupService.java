@@ -157,16 +157,20 @@ public class GroupService {
 
     @Transactional
     public void deleteGroup(Long id) {
-        if (!groupRepository.existsById(id)) {
-            throw new RuntimeException("Guruh topilmadi: " + id);
-        }
+//        if (!groupRepository.existsById(id)) {
+//            throw new RuntimeException("Guruh topilmadi: " + id);
+//        }
+            Group group = groupRepository.findById(id)
+                    .orElseThrow(() -> new RuntimeException("Group not found with id: " + id));
 
-        Group group = groupRepository.findByIdWithStudents(id);
 
-        // Check if group has students
-        if (group.getStudents() != null && !group.getStudents().isEmpty()) {
-            throw new RuntimeException("Bu guruhda o'quvchilar borligi uchun uni o'chira olmaysiz. Avval o'quvchilarni boshqa guruhlarga ko'chiring!");
-        }
+            group.getStudents().clear();
+//        Group group = groupRepository.findByIdWithStudents(id);
+
+//        // Check if group has students
+//        if (group.getStudents() != null && !group.getStudents().isEmpty()) {
+//            throw new RuntimeException("Bu guruhda o'quvchilar borligi uchun uni o'chira olmaysiz. Avval o'quvchilarni boshqa guruhlarga ko'chiring!");
+//        }
 
         groupRepository.deleteById(id);
     }
