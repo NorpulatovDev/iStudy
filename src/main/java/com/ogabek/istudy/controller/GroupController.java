@@ -115,4 +115,24 @@ public class GroupController {
         groupService.deleteGroup(id);
         return ResponseEntity.ok().build();
     }
+
+    // Add student to group
+    @PostMapping("/{groupId}/students/{studentId}")
+    public ResponseEntity<GroupDto> addStudentToGroup(
+            @PathVariable Long groupId,
+            @PathVariable Long studentId
+    ) {
+        GroupDto updatedGroup = groupService.addStudentToGroup(groupId, studentId);
+        return ResponseEntity.ok(updatedGroup);
+    }
+
+    // Remove student from group
+    @DeleteMapping("/{groupId}/students/{studentId}")
+    public ResponseEntity<GroupDto> removeStudentFromGroup(
+            @PathVariable Long groupId,
+            @PathVariable Long studentId
+    ) {
+        GroupDto updatedGroup = groupService.removeStudentFromGroup(groupId, studentId);
+        return ResponseEntity.ok(updatedGroup);
+    }
 }
