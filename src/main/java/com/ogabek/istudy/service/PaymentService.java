@@ -78,26 +78,15 @@ public class PaymentService {
         int paymentYear = request.getPaymentYear();
         int paymentMonth = request.getPaymentMonth();
 
-        // Check if student already paid for this course in specified month
-        BigDecimal totalPaidInMonth = paymentRepository.getTotalPaidByStudentForCourseInMonth(
-                student.getId(), course.getId(), paymentYear, paymentMonth);
-
-        BigDecimal newTotal = totalPaidInMonth.add(request.getAmount());
-
-        // Check if already fully paid
-        if (totalPaidInMonth.compareTo(course.getPrice()) >= 0) {
-            throw new RuntimeException("Bu oyda bu kurs uchun to'lov allaqachon to'liq amalga oshirilgan!");
-        }
-
-        // Check if new payment exceeds course price
-        if (newTotal.compareTo(course.getPrice()) > 0) {
-            BigDecimal remaining = course.getPrice().subtract(totalPaidInMonth);
-            throw new RuntimeException("To'lov miqdori kurs narxidan oshib ketmoqda! Qolgan miqdor: " + remaining);
+        // Validation: Only check that payment amount is positive
+        // Allow payments exceeding course price (for advance payments, penalties, etc.)
+        if (request.getAmount().compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("To'lov miqdori 0 dan katta bo'lishi kerak!");
         }
 
         Payment payment = new Payment();
         payment.setStudent(student);
-        payment.setCourse(course);  // Course from group
+        payment.setCourse(course);
         payment.setGroup(group);
         payment.setAmount(request.getAmount());
         payment.setDescription(request.getDescription());
@@ -114,6 +103,29 @@ public class PaymentService {
         return convertToDto(paymentWithRelations);
     }
 
+    // NEW: Update payment amount - allows overpayment
+    @Transactional
+    public PaymentDto updatePaymentAmount(Long id, BigDecimal newAmount) {
+        // Get existing payment
+        Payment payment = paymentRepository.findByIdWithAllRelations(id)
+                .orElseThrow(() -> new RuntimeException("Payment not found with id: " + id));
+
+        // Validate new amount is positive
+        if (newAmount.compareTo(BigDecimal.ZERO) <= 0) {
+            throw new RuntimeException("To'lov miqdori 0 dan katta bo'lishi kerak!");
+        }
+
+        // Update payment amount - no maximum limit check
+        payment.setAmount(newAmount);
+        Payment savedPayment = paymentRepository.save(payment);
+
+        // Return updated payment with all relations
+        Payment updatedPaymentWithRelations = paymentRepository.findByIdWithAllRelations(savedPayment.getId())
+                .orElseThrow(() -> new RuntimeException("Failed to fetch updated payment"));
+
+        return convertToDto(updatedPaymentWithRelations);
+    }
+
     @Transactional
     public void deletePayment(Long id) {
         if (!paymentRepository.existsById(id)) {
@@ -122,7 +134,7 @@ public class PaymentService {
         paymentRepository.deleteById(id);
     }
 
-    // NEW: Get payments by date range
+    // Get payments by date range
     @Transactional(readOnly = true)
     public List<PaymentDto> getPaymentsByDateRange(Long branchId, LocalDate startDate, LocalDate endDate) {
         return paymentRepository.findByBranchIdAndCreatedAtBetweenWithRelations(
@@ -134,7 +146,7 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // NEW: Get payments by month/year
+    // Get payments by month/year
     @Transactional(readOnly = true)
     public List<PaymentDto> getPaymentsByMonth(Long branchId, int year, int month) {
         return paymentRepository.findByBranchIdAndPaymentYearAndPaymentMonthWithRelations(branchId, year, month)
@@ -143,7 +155,7 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // NEW: Search payments by student name
+    // Search payments by student name
     @Transactional(readOnly = true)
     public List<PaymentDto> searchPaymentsByStudentName(Long branchId, String studentName) {
         return paymentRepository.findByBranchIdWithAllRelations(branchId).stream()
@@ -158,7 +170,7 @@ public class PaymentService {
                 .collect(Collectors.toList());
     }
 
-    // NEW: Get recent payments
+    // Get recent payments
     @Transactional(readOnly = true)
     public List<PaymentDto> getRecentPayments(Long branchId, int limit) {
         return paymentRepository.findByBranchIdWithAllRelations(branchId).stream()
@@ -193,7 +205,8 @@ public class PaymentService {
             dto.setBranchName(payment.getBranch().getName());
         }
 
-        if (payment.getGroup()!= null) { // NEW
+        // Safe access to group properties
+        if (payment.getGroup() != null) {
             dto.setGroupId(payment.getGroup().getId());
             dto.setGroupName(payment.getGroup().getName());
         }

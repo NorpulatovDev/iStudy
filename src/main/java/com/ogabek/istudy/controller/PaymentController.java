@@ -1,6 +1,7 @@
 package com.ogabek.istudy.controller;
 
 import com.ogabek.istudy.dto.request.CreatePaymentRequest;
+import com.ogabek.istudy.dto.request.UpdatePaymentRequest;
 import com.ogabek.istudy.dto.response.PaymentDto;
 import com.ogabek.istudy.dto.response.UnpaidStudentDto;
 import com.ogabek.istudy.security.BranchAccessControl;
@@ -117,6 +118,21 @@ public class PaymentController {
         }
         PaymentDto payment = paymentService.createPayment(request);
         return ResponseEntity.ok(payment);
+    }
+
+    @PutMapping("/{id}")
+    public ResponseEntity<PaymentDto> updatePaymentAmount(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePaymentRequest request) {
+
+        // First check if payment exists and user has access
+        PaymentDto existingPayment = paymentService.getPaymentById(id);
+        if (!branchAccessControl.hasAccessToBranch(existingPayment.getBranchId())) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
+        }
+
+        PaymentDto updatedPayment = paymentService.updatePaymentAmount(id, request.getAmount());
+        return ResponseEntity.ok(updatedPayment);
     }
 
     // NEW: Search payments by student name

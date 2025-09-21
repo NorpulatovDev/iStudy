@@ -17,12 +17,16 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/teacher-salaries")
-@RequiredArgsConstructor
 @CrossOrigin(origins = "*", maxAge = 3600)
 public class TeacherSalaryController {
     
     private final TeacherSalaryService teacherSalaryService;
     private final BranchAccessControl branchAccessControl;
+
+    public TeacherSalaryController(TeacherSalaryService teacherSalaryService,BranchAccessControl branchAccessControl) {
+        this.teacherSalaryService = teacherSalaryService;
+        this.branchAccessControl = branchAccessControl;
+    }
 
     // Calculate salary for specific teacher (on-demand)
     @GetMapping("/calculate/teacher/{teacherId}")
