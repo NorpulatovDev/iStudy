@@ -9,6 +9,10 @@ import com.ogabek.istudy.repository.ExpenseRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -22,6 +26,38 @@ public class ExpenseService {
         return expenseRepository.findByBranchId(branchId).stream()
                 .map(this::convertToDto)
                 .collect(Collectors.toList());
+    }
+
+    // NEW: Get expenses by month and year
+    public List<ExpenseDto> getExpensesByMonth(Long branchId, int year, int month) {
+        return expenseRepository.findByBranchIdAndCreatedAtBetween(
+                        branchId,
+                        LocalDateTime.of(year, month, 1, 0, 0),
+                        LocalDateTime.of(year, month, 1, 0, 0).plusMonths(1).minusSeconds(1)
+                ).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    // NEW: Get expenses by specific date
+    public List<ExpenseDto> getExpensesByDate(Long branchId, LocalDate date) {
+        return expenseRepository.findByBranchIdAndCreatedAtBetween(
+                        branchId,
+                        date.atStartOfDay(),
+                        date.atTime(LocalTime.MAX)
+                ).stream()
+                .map(this::convertToDto)
+                .collect(Collectors.toList());
+    }
+
+    // NEW: Get monthly expenses total
+    public BigDecimal getMonthlyExpensesTotal(Long branchId, int year, int month) {
+        return expenseRepository.sumMonthlyExpenses(branchId, year, month);
+    }
+
+    // NEW: Get daily expenses total
+    public BigDecimal getDailyExpensesTotal(Long branchId, LocalDate date) {
+        return expenseRepository.sumDailyExpenses(branchId, date.atStartOfDay());
     }
 
     public ExpenseDto getExpenseById(Long id) {
