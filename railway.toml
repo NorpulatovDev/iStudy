@@ -1,8 +1,5 @@
 [build]
 builder = "nixpacks"
 
-[build.nixpacksPlan]
-providers = ["java", "gradle"]
-
 [variables]
 JAVA_VERSION = "17"
