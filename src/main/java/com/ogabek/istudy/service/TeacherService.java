@@ -93,17 +93,20 @@ public class TeacherService {
 
     @Transactional
     public void deleteTeacher(Long id) {
-        if (!teacherRepository.existsById(id)) {
-            throw new RuntimeException("O'qituvchi topilmadi: " + id);
-        }
+        Teacher teacher = teacherRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("O'qituvchi topilmadi: " + id));
 
         // Check if teacher has any groups assigned
         List<Group> teacherGroups = groupRepository.findByTeacherId(id);
         if (!teacherGroups.isEmpty()) {
-            throw new RuntimeException("Bu o'qituvchida guruhlar borligi uchun uni o'chira olmaysiz. Avval guruhlardan o'qituvchini olib tashlang!");
+            throw new RuntimeException("Bu o'qituvchida " + teacherGroups.size() + " ta guruh mavjud. Avval guruhlarni boshqa o'qituvchiga tayinlang yoki o'chiring.");
         }
 
-        teacherRepository.deleteById(id);
+        try {
+            teacherRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("O'qituvchini o'chirishda xatolik yuz berdi: " + e.getMessage());
+        }
     }
 
     private TeacherDto convertToDto(Teacher teacher) {

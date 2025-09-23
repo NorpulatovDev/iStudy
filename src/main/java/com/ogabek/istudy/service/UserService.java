@@ -81,11 +81,29 @@ public class UserService {
         return convertToDto(user);
     }
 
+    @Transactional
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new RuntimeException("User not found with id: " + id);
+        User user = userRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Foydalanuvchi topilmadi: " + id));
+
+        // Check if this is the last super admin
+        if (user.getRole() == Role.SUPER_ADMIN) {
+            long superAdminCount = userRepository.findAll().stream()
+                    .filter(u -> u.getRole() == Role.SUPER_ADMIN)
+                    .count();
+
+            if (superAdminCount <= 1) {
+                throw new RuntimeException("Oxirgi super admin foydalanuvchisini o'chirish mumkin emas.");
+            }
         }
-        userRepository.deleteById(id);
+
+        try {
+            // Delete refresh tokens first
+            refreshTokenService.deleteByUserId(id);
+            userRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Foydalanuvchini o'chirishda xatolik yuz berdi: " + e.getMessage());
+        }
     }
 
     public JwtResponse refreshToken(String refreshTokenStr) {

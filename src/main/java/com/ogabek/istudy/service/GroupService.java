@@ -161,7 +161,7 @@ public class GroupService {
 //            throw new RuntimeException("Guruh topilmadi: " + id);
 //        }
             Group group = groupRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Group not found with id: " + id));
+                    .orElseThrow(() -> new RuntimeException("Guruh topilmadi: " + id));
 
 
             group.getStudents().clear();

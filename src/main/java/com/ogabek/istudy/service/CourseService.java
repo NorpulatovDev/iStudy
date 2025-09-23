@@ -82,18 +82,20 @@ public class CourseService {
 
     @Transactional
     public void deleteCourse(Long id) {
-        if (!courseRepository.existsById(id)) {
-            throw new RuntimeException("Course not found with id: " + id);
-        }
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Kurs topilmadi: " + id));
 
         // Check if course has groups
         List<Group> courseGroups = groupRepository.findByCourseId(id);
         if (!courseGroups.isEmpty()) {
-            throw new RuntimeException("Kursda guruhlar borligi uchun uni o'chira olmaysiz. Avval guruhlarni o'chiring!");
+            throw new RuntimeException("Bu kursda " + courseGroups.size() + " ta guruh mavjud. Avval guruhlarni o'chiring.");
         }
 
-        // If no groups, safe to delete
-        courseRepository.deleteById(id);
+        try {
+            courseRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("Kursni o'chirishda xatolik yuz berdi: " + e.getMessage());
+        }
     }
 
     private CourseDto convertToDto(Course course) {

@@ -279,19 +279,24 @@ public class StudentService {
     @Transactional
     public void deleteStudent(Long id) {
         Student student = studentRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Student not found with id: " + id));
+                .orElseThrow(() -> new RuntimeException("O'quvchi topilmadi: " + id));
 
-        // Remove student from all groups before deleting
-        List<Group> studentGroups = groupRepository.findByBranchIdWithAllRelations(student.getBranch().getId()).stream()
-                .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
-                .collect(Collectors.toList());
+        try {
+            // Remove student from all groups before deleting
+            List<Group> studentGroups = groupRepository.findByBranchIdWithAllRelations(student.getBranch().getId()).stream()
+                    .filter(group -> group.getStudents() != null && group.getStudents().contains(student))
+                    .collect(Collectors.toList());
 
-        for (Group group : studentGroups) {
-            group.getStudents().remove(student);
-            groupRepository.save(group);
+            for (Group group : studentGroups) {
+                group.getStudents().remove(student);
+                groupRepository.save(group);
+            }
+
+            // Delete the student (payments will remain as historical records)
+            studentRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new RuntimeException("O'quvchini o'chirishda xatolik yuz berdi: " + e.getMessage());
         }
-
-        studentRepository.deleteById(id);
     }
 
     // UPDATED: Enhanced convertToDto method with group information
