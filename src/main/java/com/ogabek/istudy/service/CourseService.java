@@ -9,6 +9,7 @@ import com.ogabek.istudy.entity.Group;
 import com.ogabek.istudy.repository.BranchRepository;
 import com.ogabek.istudy.repository.CourseRepository;
 import com.ogabek.istudy.repository.GroupRepository;
+import com.ogabek.istudy.repository.PaymentRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,6 +25,7 @@ public class CourseService {
     private final CourseRepository courseRepository;
     private final BranchRepository branchRepository;
     private final GroupRepository groupRepository;
+    private final PaymentRepository paymentRepository;
 
     @Transactional(readOnly = true)
     public List<CourseDto> getCoursesByBranch(Long branchId) {
@@ -92,6 +94,10 @@ public class CourseService {
         }
 
         try {
+            // Delete payments related to this course first
+            // Add this method to PaymentRepository: void deleteByCourseId(Long courseId);
+            paymentRepository.deleteByCourseId(id);
+
             courseRepository.deleteById(id);
         } catch (Exception e) {
             throw new RuntimeException("Kursni o'chirishda xatolik yuz berdi: " + e.getMessage());

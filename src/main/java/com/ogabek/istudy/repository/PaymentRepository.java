@@ -3,6 +3,7 @@ package com.ogabek.istudy.repository;
 import com.ogabek.istudy.entity.Payment;
 import com.ogabek.istudy.entity.PaymentStatus;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -114,4 +115,10 @@ public interface PaymentRepository extends JpaRepository<Payment, Long> {
                                                     @Param("groupId") Long groupId,
                                                     @Param("year") int year,
                                                     @Param("month") int month);
+
+    List<Payment> findByCourseId(Long courseId);
+
+    @Modifying
+    @Query("DELETE FROM Payment p WHERE p.course.id = :courseId")
+    void deleteByCourseId(@Param("courseId") Long courseId);
 }
