@@ -53,12 +53,6 @@ public class UserController {
         return ResponseEntity.ok(user);
     }
 
-    @PostMapping
-    @PreAuthorize("hasRole('SUPER_ADMIN')")
-    public ResponseEntity<UserDto> createUser(@Valid @RequestBody CreateUserRequest request) {
-        UserDto user = userService.createUser(request);
-        return ResponseEntity.ok(user);
-    }
 
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('SUPER_ADMIN')")

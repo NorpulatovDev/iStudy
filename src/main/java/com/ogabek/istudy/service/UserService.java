@@ -62,26 +62,6 @@ public class UserService {
         return response;
     }
 
-    public UserDto createUser(CreateUserRequest request) {
-        if (userRepository.existsByUsername(request.getUsername())) {
-            throw new RuntimeException("Username already exists: " + request.getUsername());
-        }
-
-        User user = new User();
-        user.setUsername(request.getUsername());
-        user.setPassword(passwordEncoder.encode(request.getPassword()));
-        user.setRole(Role.valueOf(request.getRole().toUpperCase()));
-
-        if (request.getBranchId() != null) {
-            Branch branch = branchRepository.findById(request.getBranchId())
-                    .orElseThrow(() -> new RuntimeException("Branch not found with id: " + request.getBranchId()));
-            user.setBranch(branch);
-        }
-
-        User savedUser = userRepository.save(user);
-        return convertToDto(savedUser);
-    }
-
     @Transactional(readOnly = true)
     public List<UserDto> getAllUsers() {
         return userRepository.findAllWithBranch().stream()
