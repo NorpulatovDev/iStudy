@@ -28,11 +28,6 @@ public class AuthController {
         return ResponseEntity.ok(response);
     }
 
-    @PostMapping("/register")
-    public ResponseEntity<UserDto> register(@Valid @RequestBody CreateUserRequest request) {
-        UserDto user = userService.createUser(request);
-        return ResponseEntity.ok(user);
-    }
 
     @PostMapping("/refresh")
     public ResponseEntity<JwtResponse> refreshToken(@Valid @RequestBody RefreshTokenRequest request) {
