@@ -8,12 +8,6 @@ group = 'com.ogabek'
 version = '0.0.1-SNAPSHOT'
 description = 'iStudy'
 
-java {
-    toolchain {
-        languageVersion = JavaLanguageVersion.of(17)
-    }
-}
-
 configurations {
     compileOnly {
         extendsFrom annotationProcessor
