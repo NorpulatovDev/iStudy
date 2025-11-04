@@ -1,5 +1,6 @@
 [build]
 builder = "railpack"
+setupCommand = "apt-get update && apt-get install -y openjdk-17-jdk"
 buildCommand = "./gradlew build"
 
 [start]
