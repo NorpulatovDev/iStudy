@@ -3,27 +3,21 @@ builder = "railpack"
 setupCommand = """
   apt-get update && \
   apt-get install -y openjdk-17-jdk && \
-  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && \
-  export PATH=$JAVA_HOME/bin:$PATH && \
-  chmod +x gradlew && \
-  java -version
+  export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::") && \
+  echo "JAVA_HOME is: $JAVA_HOME" && \
+  chmod +x gradlew
 """
 buildCommand = """
-  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && \
+  export JAVA_HOME=$(readlink -f /usr/bin/java | sed "s:bin/java::") && \
   export PATH=$JAVA_HOME/bin:$PATH && \
+  java -version && \
   ./gradlew build -x test --no-daemon --stacktrace
 """
 
 [start]
-cmd = """
-  export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 && \
-  export PATH=$JAVA_HOME/bin:$PATH && \
-  java -Dserver.port=$PORT -Dspring.profiles.active=prod -jar build/libs/iStudy-0.0.1-SNAPSHOT.jar
-"""
+cmd = "java -Dserver.port=$PORT -Dspring.profiles.active=prod -jar build/libs/iStudy-0.0.1-SNAPSHOT.jar"
 
 [variables]
-JAVA_HOME = "/usr/lib/jvm/java-17-openjdk-amd64"
-JAVA_VERSION = "17"
 SPRING_PROFILES_ACTIVE = "prod"
 
 [deploy]
