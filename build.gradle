@@ -10,10 +10,7 @@ description = 'iStudy'
 
 java {
     toolchain {
-        // Use Java 17 when available (for local builds)
         languageVersion = JavaLanguageVersion.of(17)
-        // If the environment already has JDK 17 installed (like in Railway), use that
-        vendor = JvmVendorSpec.ANY
     }
 }
 
@@ -44,10 +41,6 @@ dependencies {
 
     // Database
     runtimeOnly 'org.postgresql:postgresql'
-    // Alternative: MySQL
-    // runtimeOnly 'mysql:mysql-connector-java'
-    // Alternative: H2 for development
-    // runtimeOnly 'com.h2database:h2'
 
     // Lombok
     compileOnly 'org.projectlombok:lombok'
