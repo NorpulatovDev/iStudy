@@ -11,16 +11,6 @@ description = 'iStudy'
 java {
     toolchain {
         languageVersion = JavaLanguageVersion.of(17)
-        vendor = JvmVendorSpec.ADOPTIUM
-    }
-}
-
-// Configure Gradle to use system Java installation
-if (System.getenv("JAVA_HOME")) {
-    java {
-        toolchain {
-            languageVersion = JavaLanguageVersion.of(17)
-        }
     }
 }
 
@@ -68,54 +58,3 @@ dependencies {
 tasks.named('test') {
     useJUnitPlatform()
 }
-
-// Ensure executable jar is properly configured
-jar {
-    enabled = false
-    archiveClassifier = ''
-}
-
-bootJar {
-    enabled = true
-    archiveClassifier = ''
-    archiveFileName = "${project.name}-${project.version}.jar"
-}
-
-// Configure tasks to work with Railway environment
-tasks.withType(JavaCompile) {
-    options.encoding = 'UTF-8'
-    if (System.getenv("JAVA_HOME")) {
-        options.forkOptions.executable = "${System.getenv("JAVA_HOME")}/bin/javac"
-    }
-}
-
-tasks.withType(Test) {
-    if (System.getenv("JAVA_HOME")) {
-        executable = "${System.getenv("JAVA_HOME")}/bin/java"
-    }
-}
-
-tasks.withType(JavaExec) {
-    if (System.getenv("JAVA_HOME")) {
-        executable = "${System.getenv("JAVA_HOME")}/bin/java"
-    }
-}
-
-// Task to check Java version
-task checkJava {
-    doLast {
-        println "Java Home: ${System.getenv("JAVA_HOME")}"
-        println "Java Version: ${System.getProperty("java.version")}"
-        println "Java Vendor: ${System.getProperty("java.vendor")}"
-    }
-}
-
-// Make gradlew executable
-task makeExecutable {
-    doLast {
-        file('gradlew').setExecutable(true)
-    }
-}
-
-// Run checks before build
-build.dependsOn checkJava, makeExecutable

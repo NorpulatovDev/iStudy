@@ -1,0 +1,6 @@
+[build]
+buildCommand = "./gradlew clean build -x test"
+outputPath = "build/libs"
+
+[start]
+startCommand = "java -jar build/libs/iStudy-0.0.1-SNAPSHOT.jar"
