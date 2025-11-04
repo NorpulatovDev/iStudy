@@ -10,7 +10,10 @@ description = 'iStudy'
 
 java {
     toolchain {
+        // Use Java 17 when available (for local builds)
         languageVersion = JavaLanguageVersion.of(17)
+        // If the environment already has JDK 17 installed (like in Railway), use that
+        vendor = JvmVendorSpec.ANY
     }
 }
 
