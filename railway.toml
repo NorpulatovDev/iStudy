@@ -1,5 +1,9 @@
 [build]
 builder = "railpack"
+buildCommand = "./gradlew build"
+
+[start]
+cmd = "java -jar build/libs/iStudy-0.0.1-SNAPSHOT.jar"
 
 [variables]
 JAVA_VERSION = "17"
