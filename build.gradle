@@ -42,7 +42,7 @@ dependencies {
     annotationProcessor 'org.projectlombok:lombok'
 
     // Development Tools
-    developmentOnly 'org.springframework.boot:spring-boot-starter-devtools'
+//    developmentOnly 'org.springframework.boot:spring-boot-starter-devtools'
 
     // Testing
     testImplementation 'org.springframework.boot:spring-boot-starter-test'
